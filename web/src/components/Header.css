@@ -1,0 +1,65 @@
+.site-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--ink);
+}
+.wordmark img {
+  display: block;
+}
+
+.steps {
+  display: flex;
+  gap: 8px;
+}
+
+.step-pill {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.step-pill:disabled {
+  cursor: default;
+}
+.step-pill:not(:disabled):hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.step-current {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+@media (max-width: 520px) {
+  .wordmark span {
+    display: none;
+  }
+}

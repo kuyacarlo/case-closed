@@ -1,0 +1,250 @@
+:root {
+  /* Color tokens (HANDOFF) */
+  --page: #f3f5f7;
+  --surface: #ffffff;
+  --ink: #0f1a24;
+  --muted: #44525f;
+  --border: #d5dbe1;
+  --border-strong: #8a96a3;
+  --blue: #1d4ed8;
+  --blue-hover: #1e3a8a;
+  --orange: #b4410b;
+  --on-dark: #c9d2db;
+
+  /* Fonts */
+  --font-head: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Shape */
+  --radius-card: 10px;
+  --radius-control: 8px;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Layout */
+.container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+main {
+  flex: 1;
+  padding: 40px 0 72px;
+}
+
+/* Mono eyebrow / labels */
+.mono {
+  font-family: var(--font-mono);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Headings */
+h1 {
+  font-family: var(--font-head);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.h1-home {
+  font-size: 56px;
+}
+
+.h1-screen {
+  font-size: 40px;
+}
+
+h2 {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.lead {
+  font-size: 19px;
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+}
+
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.card-row > .card {
+  flex: 1 1 320px;
+}
+
+/* Buttons + inputs */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-control);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.btn-primary {
+  background: var(--blue);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--blue-hover);
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--ink);
+}
+.btn-outline:hover {
+  border-color: var(--ink);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+label.field {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+select,
+input[type="text"] {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+select:focus,
+input[type="text"]:focus {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+  border-color: var(--blue);
+}
+
+/* Mono tag / stamp */
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.tag-dashed {
+  border: 1px dashed var(--border-strong);
+  color: var(--muted);
+}
+
+.definition-box {
+  background: var(--page);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: 12px 14px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.footer-note {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.section {
+  margin-top: 48px;
+}
+
+.stack-sm > * + * {
+  margin-top: 12px;
+}
+.stack-md > * + * {
+  margin-top: 20px;
+}
+.stack-lg > * + * {
+  margin-top: 32px;
+}
+
+.num {
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 640px) {
+  .h1-home {
+    font-size: 40px;
+  }
+  .h1-screen {
+    font-size: 30px;
+  }
+}
