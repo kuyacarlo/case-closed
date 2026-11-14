@@ -7,6 +7,8 @@ is it changing, how fast, and is the trend statistically significant?
 Built for the NASA Space Apps 2026 challenge *"Be An Earth System Trend
 Detective!"*. Audience: high school and college students, Philippines first.
 
+**Live:** <https://case-closed-ivory.vercel.app>
+
 ## What makes it different
 
 Most tools stop at "the line goes up." Case Closed is honest about confidence.
