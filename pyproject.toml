@@ -18,4 +18,4 @@ entrypoint = "app:app"
 # Vercel runs this after installing Python deps and before deploying: build the
 # Vite SPA with a same-origin API base so the frontend calls /api/* directly.
 [tool.vercel.scripts]
-build = "corepack enable && pnpm --dir web install --frozen-lockfile && VITE_API_BASE= pnpm --dir web build"
+build = "pnpm --dir web install --frozen-lockfile && VITE_API_BASE= pnpm --dir web build"
