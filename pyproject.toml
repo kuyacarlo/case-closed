@@ -1,0 +1,21 @@
+[project]
+name = "case-closed"
+version = "1.0.0"
+description = "Case Closed: Earth System Trend Detective (NASA Space Apps 2026)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.5",
+    "httpx>=0.28.1",
+    "numpy>=2.1.3",
+    "pandas>=2.2.3",
+    "pymannkendall>=1.4.3",
+]
+
+# Vercel: find the FastAPI `app` instance in the repo-root app.py.
+[tool.vercel]
+entrypoint = "app:app"
+
+# Vercel runs this after installing Python deps and before deploying: build the
+# Vite SPA with a same-origin API base so the frontend calls /api/* directly.
+[tool.vercel.scripts]
+build = "corepack enable && pnpm --dir web install --frozen-lockfile && VITE_API_BASE= pnpm --dir web build"

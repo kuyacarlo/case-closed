@@ -134,9 +134,15 @@ def get_series(
     cache = _cache_path(variable, lat, lon)
     try:
         payload = fetch_power(variable, lat, lon, start, end, client=client)
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        cache.write_text(json.dumps(payload))
-    except (httpx.HTTPError, OSError):
+        # Write-back is best-effort: on a read-only filesystem (e.g. a
+        # serverless runtime) the live fetch still succeeds; we just skip the
+        # cache. The committed demo JSON under data/ remains readable.
+        try:
+            DATA_DIR.mkdir(parents=True, exist_ok=True)
+            cache.write_text(json.dumps(payload))
+        except OSError:
+            pass
+    except httpx.HTTPError:
         if use_cache and cache.exists():
             payload = json.loads(cache.read_text())
         else:
