@@ -2,7 +2,7 @@
 name = "case-closed"
 version = "1.0.0"
 description = "Case Closed: Earth System Trend Detective (NASA Space Apps 2026)"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.5",
     "httpx>=0.28.1",
