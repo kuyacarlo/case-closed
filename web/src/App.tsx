@@ -22,6 +22,9 @@ export default function App() {
   const [data, setData] = useState<CaseResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [usedFallback, setUsedFallback] = useState(false);
+  // Earliest start year the slider allows, set when a case opens (a static
+  // case such as NO2 starts later than the 1981 POWER baseline).
+  const [caseMinYear, setCaseMinYear] = useState(MIN_YEAR);
 
   useEffect(() => {
     fetchVariables().then(setVariables);
@@ -38,6 +41,7 @@ export default function App() {
   function openCase(q: CaseQuery, q2: string) {
     setQuery(q);
     setQuestion(q2);
+    setCaseMinYear(q.start);
     void load(q);
     setStep(2);
     window.scrollTo({ top: 0 });
@@ -83,7 +87,7 @@ export default function App() {
           <VerdictScreen
             data={data}
             startYear={query.start}
-            minYear={MIN_YEAR}
+            minYear={caseMinYear}
             maxYear={MAX_YEAR}
             loading={loading}
             onStartYearChange={onStartYearChange}

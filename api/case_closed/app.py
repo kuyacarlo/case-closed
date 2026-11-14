@@ -52,9 +52,16 @@ def case(
         raise HTTPException(status_code=400, detail="start must be <= end")
 
     try:
-        series = get_series(var.code, lat, lon, start, end)
+        if var.static_file:
+            from .static_cases import load_static_series
+
+            series = load_static_series(
+                var.code, var.static_file, lat, lon, start, end, scale=var.scale
+            )
+        else:
+            series = get_series(var.code, lat, lon, start, end)
     except Exception as exc:  # noqa: BLE001 - surface upstream failure to client
-        raise HTTPException(status_code=502, detail=f"POWER fetch failed: {exc}")
+        raise HTTPException(status_code=502, detail=f"Data fetch failed: {exc}")
 
     if not series.points:
         raise HTTPException(status_code=404, detail="No data for this point and window")

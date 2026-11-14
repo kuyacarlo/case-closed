@@ -17,6 +17,16 @@ const MANILA: CaseQuery = {
   end: 2024,
 };
 
+// CASE 02: Sentinel-5P NO2 over Metro Manila (2018-2024), served from a
+// bundled JSON exported from Google Earth Engine.
+const MANILA_NO2: CaseQuery = {
+  lat: 14.6,
+  lon: 121.0,
+  variable: "NO2",
+  start: 2018,
+  end: 2024,
+};
+
 // A small city list stands in for the Leaflet picker (item 8, out of MVP).
 const PLACES: Record<string, { lat: number; lon: number }> = {
   "Metro Manila": { lat: 14.6, lon: 121.0 },
@@ -35,11 +45,18 @@ export function OpenCase({ variables, onOpenCase }: OpenCaseProps) {
 
   function openOwn() {
     const coord = PLACES[place];
-    onOpenCase(
-      { lat: coord.lat, lon: coord.lon, variable, start: 1981, end: 2024 },
-      `Is ${place} ${variable === "T2M" ? "getting hotter" : "getting wetter"}?`,
-    );
+    const q =
+      variable === "T2M"
+        ? `Is ${place} getting hotter?`
+        : variable === "PRECTOTCORR"
+          ? `Is ${place} getting wetter?`
+          : `Is ${place}'s ${selectedVar?.label.toLowerCase()} changing?`;
+    onOpenCase({ lat: coord.lat, lon: coord.lon, variable, start: 1981, end: 2024 }, q);
   }
+
+  // Own-case picker offers only live (POWER) variables; static cases such as
+  // NO2 are Manila-only prepared cases, offered as Case 02 above.
+  const ownCaseVariables = variables.filter((v) => v.code !== "NO2");
 
   return (
     <div className="container stack-lg">
@@ -75,9 +92,16 @@ export function OpenCase({ variables, onOpenCase }: OpenCaseProps) {
             <p className="eyebrow">Case 02 · Nitrogen dioxide</p>
             <h3 className="case-title">Did Manila's air get cleaner?</h3>
             <p className="case-detail">
-              Satellite NO<sub>2</sub> over the metro.
+              Satellite NO<sub>2</sub>, 2018 to 2024. 79 months of evidence.
             </p>
-            <span className="tag tag-dashed">Being prepared</span>
+            <button
+              className="btn btn-primary"
+              onClick={() =>
+                onOpenCase(MANILA_NO2, "Did Manila's air get cleaner?")
+              }
+            >
+              Open case
+            </button>
           </article>
 
           <article className="card stack-sm">
@@ -111,7 +135,7 @@ export function OpenCase({ variables, onOpenCase }: OpenCaseProps) {
                 value={variable}
                 onChange={(e) => setVariable(e.target.value)}
               >
-                {variables.map((v) => (
+                {ownCaseVariables.map((v) => (
                   <option key={v.code} value={v.code}>
                     {v.label}
                   </option>

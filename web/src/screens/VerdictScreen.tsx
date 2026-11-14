@@ -90,7 +90,7 @@ export function VerdictScreen({
           <input
             type="range"
             min={minYear}
-            max={maxYear - 10}
+            max={Math.max(minYear + 1, maxYear - 5)}
             value={startYear}
             onChange={(e) => onStartYearChange(Number(e.target.value))}
             aria-label="Start year"

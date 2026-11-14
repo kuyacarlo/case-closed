@@ -19,3 +19,7 @@ dist/
 .vscode/
 .vercel
 .env*
+
+# GEE exporter local env
+tools/**/.venv/
+*.json.key
