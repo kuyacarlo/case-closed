@@ -93,10 +93,9 @@ main {
 }
 
 .eyebrow {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -197,8 +196,6 @@ label.field {
   display: block;
   font-family: var(--font-mono);
   font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 6px;
 }
@@ -233,8 +230,6 @@ input[type="text"]:focus {
   display: inline-block;
   font-family: var(--font-mono);
   font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   padding: 4px 10px;
   border-radius: 6px;
 }
@@ -328,8 +323,6 @@ input[type="text"]:focus {
   margin-left: 8px;
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--warn-ink);
   background: var(--warn-bg);
   border-radius: 999px;
@@ -365,4 +358,8 @@ input[type="text"]:focus {
 }
 .error-card {
   border-left: 4px solid var(--orange);
+}
+
+.play-icon {
+  margin-right: 6px;
 }

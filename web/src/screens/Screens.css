@@ -25,8 +25,6 @@
 .strip-label {
   font-family: var(--font-mono);
   font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted);
   display: block;
   margin-bottom: 4px;
@@ -40,8 +38,6 @@
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--warn-text);
   background: var(--warn-stripe);
   padding: 7px 12px 7px 16px;
@@ -111,8 +107,6 @@
   display: inline-block;
   font-family: var(--font-mono);
   font-size: 13px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: #fff;
   border: 1px solid var(--border-strong);
   border-radius: 6px;
@@ -256,8 +250,6 @@
 .legend-title {
   font-family: var(--font-mono);
   font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 .legend-ramp {
@@ -455,8 +447,6 @@
 .methods-table th {
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--muted);
   background: var(--page);
 }
@@ -520,8 +510,6 @@
 .summary-rows dt {
   font-family: var(--font-mono);
   font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--on-dark);
   padding-top: 3px;
 }
@@ -864,10 +852,11 @@
   width: 100%;
 }
 .case-stamp {
-  width: 190px;
+  width: 230px;
+  max-width: 48%;
   height: auto;
   flex: none;
-  transform: rotate(-5deg);
+  transform: rotate(-7deg);
   transform-origin: center;
   animation: stamp-press 380ms var(--ease-out-expo) both;
 }
@@ -884,10 +873,10 @@
 }
 @keyframes stamp-press {
   from {
-    transform: rotate(-5deg) scale(1.5);
+    transform: rotate(-7deg) scale(1.5);
   }
   to {
-    transform: rotate(-5deg) scale(1);
+    transform: rotate(-7deg) scale(1);
   }
 }
 

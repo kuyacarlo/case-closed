@@ -72,7 +72,8 @@ export function Explore(props: ExploreProps) {
           </p>
           <div className="hero-actions">
             <button className="btn btn-primary demo-btn" onClick={() => props.onDemo("manila")}>
-              ▶ Watch a 1-minute demo
+              <svg className="play-icon" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 1v10l9-5Z" fill="currentColor" /></svg>{" "}
+              Watch a 1-minute demo
             </button>
           </div>
         </div>
@@ -226,7 +227,8 @@ export function Explore(props: ExploreProps) {
               and the honest significance test.
             </p>
             <button className="btn btn-outline" onClick={() => props.onDemo("manila")}>
-              ▶ Watch the demo
+              <svg className="play-icon" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 1v10l9-5Z" fill="currentColor" /></svg>{" "}
+              Watch the demo
             </button>
           </article>
           <article className="card stack-sm">
@@ -240,7 +242,8 @@ export function Explore(props: ExploreProps) {
               why, and what is changing clearly there.
             </p>
             <button className="btn btn-outline" onClick={() => props.onDemo("not-yet")}>
-              ▶ Watch the demo
+              <svg className="play-icon" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 1v10l9-5Z" fill="currentColor" /></svg>{" "}
+              Watch the demo
             </button>
           </article>
           <article className="card stack-sm">

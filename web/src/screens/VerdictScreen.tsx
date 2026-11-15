@@ -27,10 +27,10 @@ interface VerdictProps {
 }
 
 const STAMP: Record<Verdict["state"], string> = {
-  confirmed: "Verdict: Significant trend",
-  step: "Verdict: Mostly one jump",
-  not_yet: "Verdict: Trend not significant yet",
-  too_short: "Verdict: Too short to judge",
+  confirmed: "Significant trend",
+  step: "Mostly one jump",
+  not_yet: "Trend not significant yet",
+  too_short: "Too short to judge",
 };
 
 /** Rubber stamp on the verdict: closed when the test gives an answer, open when it can't yet. */
@@ -110,9 +110,6 @@ export function VerdictScreen(props: VerdictProps) {
   return (
     <div className="container stack-lg">
       <section className="stack-sm">
-        <p className="eyebrow">
-          {meta.label} in {props.placeName}
-        </p>
         <h1 className="h1-screen">{props.question}</h1>
       </section>
 
