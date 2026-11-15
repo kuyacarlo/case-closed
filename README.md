@@ -147,7 +147,7 @@ Backend (Python, [uv](https://docs.astral.sh/uv/)):
 ```
 cd api
 uv sync --extra dev
-uv run pytest -q                      # 59 tests
+uv run pytest -q                      # 60 tests
 uv run uvicorn case_closed.app:app --port 8000
 ```
 
