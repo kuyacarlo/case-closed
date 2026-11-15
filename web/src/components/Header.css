@@ -69,21 +69,20 @@
 }
 
 .methods-link {
-  background: none;
-  border: 0;
+  background: var(--surface);
+  border: 1px solid var(--blue);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--blue);
   cursor: pointer;
   min-height: 36px;
-  padding: 0 4px;
-  border-radius: var(--radius-control);
+  padding: 0 12px;
+  border-radius: 999px;
 }
 .methods-link.is-current {
-  color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  background: var(--blue);
+  color: #fff;
 }
 
 .skip-link {

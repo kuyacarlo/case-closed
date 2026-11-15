@@ -689,10 +689,10 @@
   color: #fff;
   border-radius: var(--radius-card);
   overflow: hidden;
-  min-height: 340px;
+  min-height: 300px;
 }
 .hero-case-text {
-  padding: 40px;
+  padding: 28px 40px;
   align-self: center;
 }
 .hero-case .h1-explore {
@@ -866,7 +866,7 @@
   font-size: 26px;
 }
 .case-stamp.is-closed {
-  color: var(--hot-on-dark);
+  color: var(--stamp-ink);
 }
 .case-stamp.is-open {
   color: var(--warn-on-dark);
