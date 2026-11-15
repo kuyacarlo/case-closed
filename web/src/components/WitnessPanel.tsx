@@ -1,5 +1,5 @@
 import type { LayerCell } from "../data";
-import { formatP } from "../format";
+import { formatP, plainSource } from "../format";
 import type { VariableInfo } from "../types";
 import { directionColour } from "./colour";
 import { Sparkline } from "./Sparkline";
@@ -46,7 +46,7 @@ export function WitnessPanel({ main, second }: WitnessPanelProps) {
         {rows.map(({ info, cell }) => (
           <article key={info.code} className="card witness-card">
             <p className="eyebrow">{info.label}</p>
-            <p className="muted small">{info.source}</p>
+            <p className="muted small">{plainSource(info.source)}</p>
             <p className="witness-verdict">{cell.text}</p>
             <p className="small num">
               {cell.first_year}–{cell.first_year + cell.annual.length - 1}, p = {formatP(cell.p)},{" "}

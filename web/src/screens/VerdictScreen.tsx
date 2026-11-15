@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatP, yearOf } from "../format";
+import { formatP, plainSource, yearOf } from "../format";
 import { PeriodPicker } from "../components/PeriodPicker";
 import type { Guess } from "../url";
 import type { CaseResponse, Verdict } from "../types";
@@ -179,7 +179,7 @@ export function VerdictScreen(props: VerdictProps) {
           <p className="verdict-secondary">{props.nationalContext}</p>
         )}
         <p className="verdict-secondary num">
-          Period {yearOf(meta.start)}–{windowEnd}, {meta.n_months} months, {meta.source.replace(" · ", ", ")}
+          Period {yearOf(meta.start)}–{windowEnd}, {meta.n_months} months, {plainSource(meta.source)}
         </p>
       </section>
 
