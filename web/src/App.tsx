@@ -51,6 +51,10 @@ function questionFor(code: string, label: string, name: string): string {
       return `Is ${name} getting wetter or drier?`;
     case "NO2":
       return "Did Manila’s air get cleaner?";
+    case "OMI_NO2":
+      return `Is the air over ${name} getting cleaner?`;
+    case "IMERG":
+      return `Is ${name} getting wetter or drier? (satellite rainfall)`;
     default:
       return `Is ${label.toLowerCase()} changing in ${name}?`;
   }
@@ -485,7 +489,7 @@ export default function App() {
             onPlace={pickPlace}
             onMapPick={pickPoint}
             onEvidence={() => place && openCase(code, place)}
-            onFeatured={() => openCase("NO2", { name: "Metro Manila", context: "NCR", lat: 14.6, lon: 121.0 })}
+            onFeatured={() => openCase("OMI_NO2", MANILA)}
             onDemo={setDemo}
             onMethods={(a) => goTo("methods", a)}
           />

@@ -178,12 +178,12 @@ export function Explore(props: ExploreProps) {
           </article>
           <article className="card stack-sm">
             <p className="eyebrow">
-              Case · Air quality <span className="chip-short">Short record</span>
+              Case · Air quality
             </p>
             <h3 className="case-title">Did Manila’s air get cleaner?</h3>
             <p className="case-detail">
-              Nitrogen dioxide from the Sentinel-5P satellite (ESA), 2018 to 2024. Only 7
-              years, so watch how the verdict handles it.
+              Nitrogen dioxide from NASA’s OMI satellite, 2005 to 2025: 21 years, long
+              enough to test. Try it for any city on the map too.
             </p>
             <button className="btn btn-outline" onClick={() => props.onFeatured("manila-no2")}>
               Open case
@@ -193,8 +193,9 @@ export function Explore(props: ExploreProps) {
       </section>
 
       <footer className="section footer-note">
-        Data: NASA POWER (MERRA-2 reanalysis; CERES SYN1deg for sunlight and cloud).
-        NO₂: Sentinel-5P TROPOMI (ESA/Copernicus). Boundaries: geoBoundaries (CC BY 3.0 IGO).{" "}
+        Data: NASA GPM IMERG, GLDAS, Aura OMI and Aqua AIRS via Giovanni; NASA POWER
+        (MERRA-2 reanalysis; CERES SYN1deg for sunlight and cloud). Manila NO₂ also from
+        Sentinel-5P TROPOMI (ESA/Copernicus). Boundaries: geoBoundaries (CC BY 3.0 IGO).{" "}
         <button className="link-btn" onClick={() => props.onMethods()}>
           How it works
         </button>

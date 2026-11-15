@@ -13,7 +13,9 @@ Run offline by the team (needs a free NASA Earthdata Login token):
 Every response is cached raw in tools/.cache/giovanni/ keyed on
 (dataset, square, years), so a rerun never repeats a request. The token is
 read from the environment or api/.env and never printed or written anywhere.
-Giovanni only accepts single points, so each square is sampled at its centre.
+Giovanni only accepts single points, so each square is sampled at a point on
+land inside it (tools/ph_cells.json "plat"/"plon"); a square's centre is often
+sea, where land-only products such as GLDAS have no data.
 """
 from __future__ import annotations
 
@@ -56,11 +58,14 @@ def token() -> str:
 
 
 def cache_path(key: str, lat: float, lon: float) -> Path:
+    """Cache file for a square (keyed on the square's centre)."""
     _, y0, y1 = DATASETS[key]
-    return CACHE / key / f"{lat:.4f}_{lon:.4f}_{y0}_{y1}.csv"
+    return CACHE / key / f"land_{lat:.4f}_{lon:.4f}_{y0}_{y1}.csv"
 
 
-def fetch(key: str, lat: float, lon: float, tok: str) -> str:
+def fetch(key: str, lat: float, lon: float, plat: float, plon: float, tok: str) -> str:
+    """Fetch the series for the square centred on (lat, lon), sampled at its
+    land point (plat, plon)."""
     path = cache_path(key, lat, lon)
     if path.exists():
         return "cached"
@@ -68,7 +73,7 @@ def fetch(key: str, lat: float, lon: float, tok: str) -> str:
     q = urllib.parse.urlencode(
         {
             "data": data_id,
-            "location": f"[{lat},{lon}]",
+            "location": f"[{plat},{plon}]",
             "time": f"{y0}-01-01T00:00:00/{y1}-12-31T23:59:59",
         }
     )
@@ -91,7 +96,7 @@ def main() -> None:
     tok = token()
     cells = json.loads((ROOT / "tools" / "ph_cells.json").read_text())["cells"]
     keys = sys.argv[1:] or list(DATASETS)
-    jobs = [(k, c["lat"], c["lon"]) for k in keys for c in cells]
+    jobs = [(k, c["lat"], c["lon"], c.get("plat", c["lat"]), c.get("plon", c["lon"])) for k in keys for c in cells]
     t0 = time.time()
     counts = {"cached": 0, "fetched": 0, "failed": 0}
     with ThreadPoolExecutor(max_workers=3) as pool:  # be polite to Giovanni

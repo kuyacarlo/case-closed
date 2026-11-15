@@ -133,7 +133,24 @@ def main() -> None:
                 cells.add(snap(lat, lon))
             lon += DLON
         lat += DLAT
-    cell_list = sorted(({"lat": c.lat, "lon": c.lon} for c in cells), key=lambda c: (-c["lat"], c["lon"]))
+    # A point on land inside each square: point datasets (Giovanni) are sampled
+    # here rather than at the centre, which is often sea for coastal squares,
+    # and land-only products such as GLDAS return nothing over sea.
+    def land_point(c):
+        b = box(c.lon - DLON / 2, c.lat - DLAT / 2, c.lon + DLON / 2, c.lat + DLAT / 2)
+        part = land.intersection(b)
+        if part.is_empty:
+            return c.lat, c.lon
+        # The largest piece of land in the square, then a point well inside it.
+        geoms = getattr(part, "geoms", [part])
+        biggest = max(geoms, key=lambda g: g.area)
+        pt = biggest.representative_point()
+        return round(pt.y, 4), round(pt.x, 4)
+
+    cell_list = []
+    for c in sorted(cells, key=lambda c: (-c.lat, c.lon)):
+        plat, plon = land_point(c)
+        cell_list.append({"lat": c.lat, "lon": c.lon, "plat": plat, "plon": plon})
 
     # Province outlines for the map: simplify further and round coordinates.
     def rounded(geom, nd=3):

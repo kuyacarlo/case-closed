@@ -23,7 +23,7 @@ export function Evidence({ data, question, placeName, alsoCovers, witnesses, onC
   const years = Number(endYear) - Number(startYear) + 1;
   // Amounts (rain, evaporation, runoff, sunlight, NO2) keep 0 as the floor;
   // temperatures, humidity and similar get an axis fitted to the data.
-  const zeroBased = ["PRECTOTCORR", "EVLAND", "ALLSKY_SFC_SW_DWN", "WS2M", "NO2"].includes(meta.variable);
+  const zeroBased = ["PRECTOTCORR", "EVLAND", "ALLSKY_SFC_SW_DWN", "WS2M", "NO2", "IMERG", "GLDAS_EVAP", "GLDAS_RUNOFF", "OMI_NO2"].includes(meta.variable);
   const size = meta.cell ? cellSizeKm(meta.cell.lat) : null;
 
   return (
