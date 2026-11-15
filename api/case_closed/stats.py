@@ -32,6 +32,9 @@ class TrendResult:
     lag1: float
     n_eff: int
     years_needed: int | None
+    # Pettitt change point on annual means: {"year", "p", "mean_before",
+    # "mean_after"}, or None when the record is too short to test.
+    changepoint: dict | None = None
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -147,7 +150,74 @@ def years_needed(anomalies: np.ndarray, slope_per_decade: float) -> int | None:
     return int(round(n_years))
 
 
-def analyze(values: np.ndarray, start_month: int = 1) -> tuple[TrendResult, list[str]]:
+PETTITT_MIN_YEARS = 10
+STEP_MIN_AFTER_YEARS = 8
+STEP_LEVEL_RATIO = 0.25
+
+
+def pettitt(x: np.ndarray) -> tuple[int, float]:
+    """Pettitt (1979) test for a single shift in the mean.
+
+    Returns ``(k, p)`` where ``k`` is the index of the first value *after* the
+    most likely change and ``p`` the approximate two-sided p-value
+    ``2 * exp(-6 K^2 / (n^3 + n^2))``.
+    """
+    x = np.asarray(x, dtype=float)
+    n = len(x)
+    sgn = np.sign(x[:, None] - x[None, :])  # sgn[i, j] = sign(x_i - x_j)
+    # U_t = sum_{i<=t} sum_{j>t} sign(x_i - x_j), for t = 0..n-2
+    u = np.array([sgn[: t + 1, t + 1 :].sum() for t in range(n - 1)])
+    t_best = int(np.argmax(np.abs(u)))
+    k_stat = float(abs(u[t_best]))
+    p = min(1.0, 2.0 * math.exp(-6.0 * k_stat**2 / (n**3 + n**2)))
+    return t_best + 1, p
+
+
+def annual_changepoint(values: np.ndarray, start_year: int, start_month: int = 1) -> dict | None:
+    """Pettitt test on calendar-year means of complete years.
+
+    Monthly values are too autocorrelated for Pettitt's independence
+    assumption; annual means are much closer to independent.
+    """
+    values = np.asarray(values, dtype=float)
+    skip = (13 - start_month) % 12  # months until the first January
+    full = values[skip:]
+    n_years = len(full) // 12
+    if n_years < PETTITT_MIN_YEARS:
+        return None
+    annual = full[: n_years * 12].reshape(n_years, 12).mean(axis=1)
+    first_year = start_year + (1 if skip else 0)
+    k, p = pettitt(annual)
+
+    # Pettitt also fires on a smooth trend, so "significant" alone doesn't mean
+    # "a jump". Call it step-dominated only when the series is roughly level
+    # after the change: post-change slope under a quarter of the overall slope.
+    t = np.arange(n_years, dtype=float)
+    slope_all = float(np.polyfit(t, annual, 1)[0]) * 10
+    slope_after = (
+        float(np.polyfit(t[k:], annual[k:], 1)[0]) * 10
+        if n_years - k >= STEP_MIN_AFTER_YEARS
+        else None
+    )
+    step_dominated = bool(
+        p < 0.05
+        and slope_after is not None
+        and abs(slope_all) > 0
+        and abs(slope_after) < STEP_LEVEL_RATIO * abs(slope_all)
+    )
+    return {
+        "year": first_year + k,
+        "p": p,
+        "mean_before": round(float(annual[:k].mean()), 4),
+        "mean_after": round(float(annual[k:].mean()), 4),
+        "slope_after_per_decade": None if slope_after is None else round(slope_after, 4),
+        "step_dominated": step_dominated,
+    }
+
+
+def analyze(
+    values: np.ndarray, start_month: int = 1, start_year: int | None = None
+) -> tuple[TrendResult, list[str]]:
     """Run the full seven-step method on a monthly series.
 
     Returns the trend result and a list of warnings (e.g. short record).
@@ -162,8 +232,12 @@ def analyze(values: np.ndarray, start_month: int = 1) -> tuple[TrendResult, list
 
     anomalies = monthly_anomalies(values, start_month=start_month)
     sen = sen_slope_per_decade(anomalies)
+    # A (near-)constant series makes Mann-Kendall's variance zero and its
+    # p-value NaN; that means "no evidence of a trend", so report p = 1.
     p_n = naive_p(anomalies)
     p_h = honest_p(anomalies)
+    p_n = 1.0 if not math.isfinite(p_n) else p_n
+    p_h = 1.0 if not math.isfinite(p_h) else p_h
     ols, ci95, n_eff, lag1 = ols_slope_ci(anomalies)
     needed = years_needed(anomalies, sen)
 
@@ -176,5 +250,10 @@ def analyze(values: np.ndarray, start_month: int = 1) -> tuple[TrendResult, list
         lag1=round(lag1, 4),
         n_eff=n_eff,
         years_needed=needed,
+        changepoint=(
+            annual_changepoint(values, start_year, start_month)
+            if start_year is not None
+            else None
+        ),
     )
     return result, warnings

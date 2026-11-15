@@ -1,0 +1,47 @@
+.place-input-wrap {
+  position: relative;
+}
+.place-search input {
+  font-size: 16px; /* stops iOS zooming on focus */
+}
+.place-list {
+  position: absolute;
+  z-index: 1000;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  box-shadow: 0 8px 24px rgba(15, 26, 36, 0.12);
+  max-height: 340px;
+  overflow-y: auto;
+}
+.place-list li {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.place-list li:last-child {
+  border-bottom: 0;
+}
+.place-list li.active {
+  background: #eaf0ff;
+}
+.place-name {
+  font-weight: 600;
+}
+.place-context {
+  font-size: 13px;
+  color: var(--muted);
+}
+.place-hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 6px;
+  min-height: 1.5em;
+}

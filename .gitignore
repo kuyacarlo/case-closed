@@ -23,3 +23,9 @@ dist/
 # GEE exporter local env
 tools/**/.venv/
 *.json.key
+
+# Offline build caches (geoBoundaries downloads, raw POWER payloads)
+tools/.cache/
+# Live POWER responses cached by local runs; only the Manila demo copy is committed
+data/power_*.json
+!data/power_T2M_14.5000_121.2500.json

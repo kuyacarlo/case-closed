@@ -38,3 +38,31 @@ def test_values_are_floats_and_labels_iso():
     first = series.points[0]
     assert first.t == "2020-01"
     assert abs(first.value - 26.1) < 1e-9
+
+
+def _payload(first_year, last_year):
+    vals = {f"{y}{m:02d}": 25.0 + m / 10 for y in range(first_year, last_year + 1) for m in range(1, 13)}
+    return {"properties": {"parameter": {"T2M": vals}}}
+
+
+def test_cache_only_used_when_it_covers_the_window(tmp_path, monkeypatch):
+    import httpx
+    import pytest
+    from case_closed import power
+
+    monkeypatch.setattr(power, "DATA_DIR", tmp_path)
+    power._MEMO.clear()
+    power._cache_path("T2M", 14.5, 121.25).write_text(json.dumps(_payload(1981, 2024)))
+
+    def offline(*a, **k):
+        raise httpx.ConnectError("offline")
+
+    monkeypatch.setattr(power, "fetch_power", offline)
+
+    inside = power.get_series("T2M", 14.5, 121.25, 1990, 2000)
+    assert inside.from_cache is True
+    assert inside.points[0].t == "1990-01" and inside.points[-1].t == "2000-12"
+
+    # Window the cache can't fully cover: refuse, never substitute a window.
+    with pytest.raises(power.CacheMiss):
+        power.get_series("T2M", 14.5, 121.25, 1981, 2025)

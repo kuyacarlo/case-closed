@@ -2,7 +2,7 @@
 
 Fetches a monthly time series for a single point and variable from the NASA
 POWER API (https://power.larc.nasa.gov), cleans the response, and caches it to
-``data/``. POWER is built on MERRA-2 and CERES; values are model-based.
+``data/``. Temperature and rainfall come from the MERRA-2 reanalysis (model-based).
 
 Response shape handled here (verified against the monthly point endpoint):
 
@@ -20,6 +20,7 @@ entry per year. Missing values use the ``-999`` fill. Both are handled.
 from __future__ import annotations
 
 import json
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -48,6 +49,8 @@ class MonthlySeries:
     lat: float
     lon: float
     points: list[MonthlyPoint] = field(default_factory=list)
+    # True when served from the on-disk cache after a failed live call.
+    from_cache: bool = False
 
     @property
     def n_months(self) -> int:
@@ -117,6 +120,30 @@ def fetch_power(
             client.close()
 
 
+class CacheMiss(Exception):
+    """Raised when the live fetch failed and no cached copy covers the window."""
+
+
+# Small in-process memo for warm serverless instances: one entry per
+# (variable, cell, window). Keyed on the snapped cell so repeat clicks on the
+# same area never re-spend a POWER call.
+_MEMO: "OrderedDict[tuple, MonthlySeries]" = OrderedDict()
+_MEMO_MAX = 256
+
+
+def _window(series: MonthlySeries, start: int, end: int) -> MonthlySeries:
+    lo, hi = f"{start:04d}-01", f"{end:04d}-12"
+    pts = [p for p in series.points if lo <= p.t <= hi]
+    return MonthlySeries(variable=series.variable, lat=series.lat, lon=series.lon,
+                         points=pts, from_cache=series.from_cache)
+
+
+def _covers(series: MonthlySeries, start: int, end: int) -> bool:
+    if not series.points:
+        return False
+    return series.points[0].t <= f"{start:04d}-01" and series.points[-1].t >= f"{end:04d}-12"
+
+
 def get_series(
     variable: str,
     lat: float,
@@ -127,29 +154,41 @@ def get_series(
     use_cache: bool = True,
     client: httpx.Client | None = None,
 ) -> MonthlySeries:
-    """Return a cleaned monthly series, caching the raw payload to ``data/``.
+    """Return a cleaned monthly series for the requested window.
 
-    On a live-call failure, falls back to the cached payload when present.
+    Order: in-process memo, then the live POWER call (written back to
+    ``data/`` when the filesystem allows), then the on-disk cache. The disk
+    cache is only used when it covers the *whole* requested window, and the
+    result is flagged ``from_cache`` so the API can say so. It never silently
+    serves a different window.
     """
+    key = (variable, round(lat, 4), round(lon, 4), start, end)
+    if key in _MEMO:
+        _MEMO.move_to_end(key)
+        return _MEMO[key]
+
     cache = _cache_path(variable, lat, lon)
     try:
         payload = fetch_power(variable, lat, lon, start, end, client=client)
-        # Write-back is best-effort: on a read-only filesystem (e.g. a
-        # serverless runtime) the live fetch still succeeds; we just skip the
-        # cache. The committed demo JSON under data/ remains readable.
         try:
             DATA_DIR.mkdir(parents=True, exist_ok=True)
             cache.write_text(json.dumps(payload))
         except OSError:
             pass
+        series = _window(clean_power_response(payload, variable, lat, lon), start, end)
     except httpx.HTTPError:
-        if use_cache and cache.exists():
-            payload = json.loads(cache.read_text())
-        else:
+        if not (use_cache and cache.exists()):
             raise
+        cached = clean_power_response(json.loads(cache.read_text()), variable, lat, lon)
+        if not _covers(cached, start, end):
+            raise CacheMiss(
+                f"Live data is unavailable and the saved copy doesn't cover {start}-{end}."
+            )
+        cached.from_cache = True
+        series = _window(cached, start, end)
 
-    series = clean_power_response(payload, variable, lat, lon)
-    # Honor the requested window even when the cache holds a wider range.
-    lo, hi = f"{start:04d}-01", f"{end:04d}-12"
-    series.points = [p for p in series.points if lo <= p.t <= hi]
+    if not series.from_cache:
+        _MEMO[key] = series
+        if len(_MEMO) > _MEMO_MAX:
+            _MEMO.popitem(last=False)
     return series

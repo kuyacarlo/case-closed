@@ -1,0 +1,56 @@
+.period-picker {
+  border: 0;
+  display: grid;
+  gap: 8px;
+}
+.period-track {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--border);
+}
+.period-avail {
+  position: absolute;
+  inset: 0;
+  border-radius: 5px;
+  background: var(--page);
+  border: 1px solid var(--border);
+}
+.period-sel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 5px;
+  background: var(--blue);
+}
+.period-inputs {
+  display: grid;
+  gap: 4px;
+}
+.period-inputs label {
+  display: grid;
+  grid-template-columns: 3em minmax(0, 1fr) 3.2em;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.period-inputs input[type="range"] {
+  width: 100%;
+  height: 32px;
+  accent-color: var(--blue);
+}
+.period-inputs .num {
+  color: var(--ink);
+  font-weight: 600;
+  text-align: right;
+}
+.period-readout {
+  font-size: 14px;
+}
+.period-readout.is-short {
+  color: var(--warn-ink);
+  background: var(--warn-bg);
+  border-radius: var(--radius-control);
+  padding: 6px 10px;
+}

@@ -1,12 +1,18 @@
-// API client for the Case Closed backend. Falls back to the hard-coded demo
-// case when the API is unreachable, so the screens always render (HANDOFF
-// item 4: "frontend shell on a hard-coded response").
+// API client for the Case Closed backend. No silent fallback: if the API
+// fails, the caller gets an error and shows it. Never show one place's data
+// under another place's name.
 import type { CaseResponse, VariableInfo } from "./types";
-import { MOCK_CASE } from "./mockCase";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
+export const FIRST_YEAR = 1981;
+export const LAST_YEAR = 2025;
+/** Below this the API refuses to call a trend (keep in step with verdict.py). */
+export const MIN_YEARS_FOR_VERDICT = 20;
+
 export interface CaseQuery {
+  /** Region-average case; when set, lat/lon only position the map. */
+  area?: string;
   lat: number;
   lon: number;
   variable: string;
@@ -14,60 +20,80 @@ export interface CaseQuery {
   end: number;
 }
 
-export async function fetchCase(q: CaseQuery): Promise<CaseResponse> {
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+export async function fetchCase(q: CaseQuery, signal?: AbortSignal): Promise<CaseResponse> {
   const params = new URLSearchParams({
-    lat: String(q.lat),
-    lon: String(q.lon),
     variable: q.variable,
     start: String(q.start),
     end: String(q.end),
   });
-  const res = await fetch(`${API_BASE}/api/case?${params}`);
+  if (q.area) params.set("area", q.area);
+  else {
+    params.set("lat", String(q.lat));
+    params.set("lon", String(q.lon));
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/case?${params}`, { signal });
+  } catch (e) {
+    if ((e as Error).name === "AbortError") throw e;
+    throw new ApiError("We couldn't reach the data service.", 0);
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? `Request failed (${res.status})`);
+    throw new ApiError(body.detail ?? `Request failed (${res.status}).`, res.status);
   }
   return res.json();
 }
 
-export async function fetchCaseOrMock(q: CaseQuery): Promise<{
-  data: CaseResponse;
-  usedFallback: boolean;
-}> {
-  try {
-    const data = await fetchCase(q);
-    return { data, usedFallback: false };
-  } catch {
-    // Backend not running or point not available: serve the demo case so the
-    // walkthrough still works. The demo is real NASA POWER Metro Manila data.
-    return { data: MOCK_CASE, usedFallback: true };
-  }
-}
-
-const DEFAULT_VARIABLES: VariableInfo[] = [
+/** Used until /api/variables answers (and if it fails); the API is the
+ * source of truth for the full catalogue in api/case_closed/variables.py. */
+export const DEFAULT_VARIABLES: VariableInfo[] = [
   {
     code: "T2M",
     label: "Air temperature",
     units: "\u00b0C",
-    definition: "How warm the air is 2 meters above the ground.",
-  },
-  {
-    code: "PRECTOTCORR",
-    label: "Rainfall",
-    units: "mm/day",
-    definition: "How much rain falls, averaged over each day of the month.",
+    definition: "How warm the air is 2 meters above the ground, averaged over the month.",
+    source: "NASA POWER · MERRA-2 reanalysis (model-based)",
+    theme: "heat",
+    why_it_matters: "The most direct sign of a warming climate.",
+    digits: 2,
+    static_place: null,
+    first_year: 1981,
+    first_year_note: null,
   },
 ];
 
-export async function fetchVariables(): Promise<VariableInfo[]> {
+export const DEFAULT_THEMES: Record<string, string> = {
+  heat: "Heat",
+  water: "Rain & water",
+  land: "Land & farming",
+  sky: "Sun & sky",
+  air: "Air",
+};
+
+export async function fetchVariables(): Promise<{
+  variables: VariableInfo[];
+  themes: Record<string, string>;
+  setAside: Record<string, string>;
+}> {
   try {
     const res = await fetch(`${API_BASE}/api/variables`);
     if (!res.ok) throw new Error();
     const body = await res.json();
-    return body.variables as VariableInfo[];
+    return {
+      variables: body.variables as VariableInfo[],
+      themes: body.themes ?? DEFAULT_THEMES,
+      setAside: body.set_aside ?? {},
+    };
   } catch {
-    return DEFAULT_VARIABLES;
+    return { variables: DEFAULT_VARIABLES, themes: DEFAULT_THEMES, setAside: {} };
   }
 }
-
-export { DEFAULT_VARIABLES };
