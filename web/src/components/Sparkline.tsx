@@ -48,7 +48,7 @@ export function Sparkline({ values, firstYear, senPerDecade, units, colour }: Sp
       </svg>
       <figcaption className="sparkline-axis num">
         <span>{firstYear}</span>
-        <span>yearly average · trend</span>
+        <span>yearly average and trend</span>
         <span>{last}</span>
       </figcaption>
     </figure>

@@ -111,7 +111,7 @@ export function Tour({ name, steps, onExit }: TourProps) {
       )}
       <div className="tour-card" ref={capRef} tabIndex={-1} aria-live="polite">
         <p className="tour-meta">
-          Demo · {name} · step {i + 1} of {steps.length}
+          Demo, {name}, step {i + 1} of {steps.length}
         </p>
         <h2 className="tour-title">{step.title}</h2>
         <p className="tour-body">{step.body}</p>

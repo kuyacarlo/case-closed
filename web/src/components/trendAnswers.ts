@@ -16,7 +16,7 @@ export function trendAnswers(c: LayerCell, info: VariableInfo, lastYear: number)
       : c.sig
         ? `Yes, ${c.dir}`
         : `A slight ${noun}`;
-  const howMuch = `${signed(c.sen, d)} ${info.units} per decade · about ${signed(c.total, d)} ${info.units} since ${c.first_year}`;
+  const howMuch = `${signed(c.sen, d)} ${info.units} per decade, about ${signed(c.total, d)} ${info.units} since ${c.first_year}`;
   const significant =
     c.state === "too_short" ? "Too short to judge" : c.sig ? `Yes (p = ${formatP(c.p)})` : `Not yet (p = ${formatP(c.p)})`;
   const sure =

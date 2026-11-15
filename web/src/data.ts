@@ -127,14 +127,14 @@ export function fold(s: string): string {
 export function toPlace(p: RawPlace): Place {
   const context =
     p.k === "town"
-      ? [p.p, p.r].filter(Boolean).join(" · ")
+      ? [p.p, p.r].filter(Boolean).join(", ")
       : p.k === "province"
-        ? `Province · ${p.r ?? ""} · region average`
+        ? `Province, ${p.r ?? ""}, region average`
         : p.k === "region"
-          ? "Region · region average"
+          ? "Region, region average"
           : p.k === "group"
-            ? "Island group · region average"
-            : "Whole country · national average";
+            ? "Island group, region average"
+            : "Whole country, national average";
   return { name: p.n, context, lat: p.lat, lon: p.lon, area: p.k === "town" ? undefined : p.a };
 }
 

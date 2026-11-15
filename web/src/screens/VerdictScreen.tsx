@@ -33,6 +33,37 @@ const STAMP: Record<Verdict["state"], string> = {
   too_short: "Verdict: Too short to judge",
 };
 
+/** Rubber stamp on the verdict: closed when the test gives an answer, open when it can't yet. */
+function CaseStamp({ closed }: { closed: boolean }) {
+  return (
+    <svg
+      className={`case-stamp ${closed ? "is-closed" : "is-open"}`}
+      viewBox="0 0 260 84"
+      aria-hidden="true"
+    >
+      <defs>
+        <filter id="stamp-ink" x="-5%" y="-10%" width="110%" height="120%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="11" result="noise" />
+          <feColorMatrix
+            in="noise"
+            type="matrix"
+            values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.3 1.4"
+            result="worn"
+          />
+          <feComposite in="SourceGraphic" in2="worn" operator="in" />
+        </filter>
+      </defs>
+      <g filter="url(#stamp-ink)">
+        <rect x="4" y="4" width="252" height="76" rx="10" fill="none" stroke="currentColor" strokeWidth="5" />
+        <rect x="13" y="13" width="234" height="58" rx="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        <text x="130" y="52" textAnchor="middle" textLength="204" lengthAdjust="spacingAndGlyphs" fill="currentColor">
+          {closed ? "CASE CLOSED" : "CASE STILL OPEN"}
+        </text>
+      </g>
+    </svg>
+  );
+}
+
 /** Compare the user's eyeball call with the test (the data-detective lesson). */
 function guessLine(guess: Guess | undefined, v: Verdict): string | null {
   if (!guess) return null;
@@ -80,7 +111,7 @@ export function VerdictScreen(props: VerdictProps) {
     <div className="container stack-lg">
       <section className="stack-sm">
         <p className="eyebrow">
-          Case · {meta.label} · {props.placeName}
+          {meta.label} in {props.placeName}
         </p>
         <h1 className="h1-screen">{props.question}</h1>
       </section>
@@ -90,7 +121,10 @@ export function VerdictScreen(props: VerdictProps) {
         aria-live="polite"
         aria-busy={loading}
       >
-        <span className="verdict-stamp">{STAMP[verdict.state]}</span>
+        <div className="verdict-head">
+          <span className="verdict-stamp">{STAMP[verdict.state]}</span>
+          <CaseStamp closed={verdict.state === "confirmed" || verdict.state === "step"} />
+        </div>
         {guessLine(props.guess, verdict) && (
           <p className="guess-line">{guessLine(props.guess, verdict)}</p>
         )}
@@ -109,7 +143,7 @@ export function VerdictScreen(props: VerdictProps) {
           <div>
             <dt>How much?</dt>
             <dd className="num">
-              {signed(verdict.rate_per_decade, d)} {units} per decade · about{" "}
+              {signed(verdict.rate_per_decade, d)} {units} per decade, about{" "}
               {signed(verdict.total_change, d)} {units} over {Math.round(verdict.years)} years
             </dd>
           </div>
@@ -145,7 +179,7 @@ export function VerdictScreen(props: VerdictProps) {
           <p className="verdict-secondary">{props.nationalContext}</p>
         )}
         <p className="verdict-secondary num">
-          Period {yearOf(meta.start)}–{windowEnd} · {meta.n_months} months · {meta.source}
+          Period {yearOf(meta.start)}–{windowEnd}, {meta.n_months} months, {meta.source.replace(" · ", ", ")}
         </p>
       </section>
 

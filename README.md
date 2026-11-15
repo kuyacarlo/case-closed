@@ -192,6 +192,10 @@ place and overview builders, and the redesigned interface were written by
   from NAMRIA, PSA and OCHA Philippines.
 - Map tiles © **OpenStreetMap** contributors.
 - **Copernicus Sentinel-5P / TROPOMI** NO₂, accessed via Google Earth Engine.
+- Satellite photos in `web/public/photos/` are from **NASA Worldview** (EOSDIS
+  snapshots of Suomi NPP VIIRS true colour, 18 April 2022, 24 April 2024 and
+  20 August 2024) and **NASA Earth Observatory** Black Marble 2016. Each photo
+  carries its credit on the page.
 
 Not endorsed by or affiliated with NASA or ESA; no NASA logos or branding are
 used.
