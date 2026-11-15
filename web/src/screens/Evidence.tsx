@@ -52,7 +52,6 @@ export function Evidence({
   return (
     <div className="container stack-lg">
       <section className="stack-sm">
-        <p className="eyebrow">{meta.label}</p>
         <h1 className="h1-screen">{question}</h1>
       </section>
 

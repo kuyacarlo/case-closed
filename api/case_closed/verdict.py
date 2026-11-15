@@ -96,12 +96,8 @@ def build_verdict(
         )
     elif significant:
         state = "confirmed"
-        headline = f"{direction_word(slope, variable)}: {rate_txt}"
-        detail = (
-            f"Yes, a significant trend: {total_txt}. A trend this strong would turn up by "
-            f"chance less than 5 times in 100 (p = {format_p(trend.p_honest)}), even after "
-            "allowing for similar neighbouring months."
-        )
+        headline = f"{direction_word(slope, variable)}, {rate_txt}"
+        detail = f"The record shows {total_txt} (p = {format_p(trend.p_honest)})."
     else:
         state = "not_yet"
         headline = (

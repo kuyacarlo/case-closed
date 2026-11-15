@@ -38,8 +38,6 @@
 .pp-field > span {
   font-family: var(--font-mono);
   font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 .pp-field select {

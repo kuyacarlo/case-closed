@@ -677,7 +677,6 @@ export default function App() {
         {(view === 2 || view === 3) && status !== "error" && !data && (
           <div className="container stack-lg" aria-busy="true">
             <section className="stack-sm">
-              <p className="eyebrow">Case</p>
               <h1 className="h1-screen">{question}</h1>
               <p className="muted num">Fetching monthly data from NASA…</p>
             </section>

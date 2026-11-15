@@ -40,8 +40,6 @@
   flex: none;
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   padding: 4px 9px;
   border-radius: 999px;
   border: 1px solid currentColor;
@@ -96,8 +94,6 @@
 .answers dt {
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--muted);
   padding-top: 2px;
 }
