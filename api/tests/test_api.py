@@ -231,3 +231,23 @@ def test_soil_moisture_scaled_to_percent(monkeypatch):
     assert r.status_code == 200
     assert r.json()["series"][0]["value"] == 50.0
     assert r.json()["meta"]["units"] == "%"
+
+
+def test_area_case_returns_region_average():
+    from pathlib import Path
+    if not (Path(__file__).resolve().parents[2] / "data" / "areas" / "c-philippines.json").exists():
+        pytest.skip("area files not built")
+    c = TestClient(app_module.app)
+    r = c.get("/api/case", params={"area": "c-philippines", "variable": "T2M"})
+    assert r.status_code == 200
+    m = r.json()["meta"]
+    assert m["area"]["name"] == "Philippines" and m["area"]["squares"] == 223
+    assert m["cell"] is None
+
+
+def test_area_errors():
+    c = TestClient(app_module.app)
+    assert c.get("/api/case", params={"area": "x-nowhere", "variable": "T2M"}).status_code == 400
+    assert c.get("/api/case", params={"area": "../etc", "variable": "T2M"}).status_code == 400
+    assert c.get("/api/case", params={"area": "c-philippines", "variable": "NO2"}).status_code == 404
+    assert c.get("/api/case", params={"variable": "T2M"}).status_code == 400

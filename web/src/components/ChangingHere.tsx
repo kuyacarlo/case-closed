@@ -5,17 +5,21 @@ import type { VariableInfo } from "../types";
 import { directionColour } from "./colour";
 
 interface ChangingHereProps {
-  cell: CellCentre;
+  cell: CellCentre | null;
+  /** Precomputed rows (region averages); otherwise loaded for `cell`. */
+  rows?: ChangingRow[];
   variables: VariableInfo[];
   current: string;
   onPick: (code: string) => void;
 }
 
 /** "What's changing here?": every variable for this square, significant first. */
-export function ChangingHere({ cell, variables, current, onPick }: ChangingHereProps) {
-  const [rows, setRows] = useState<ChangingRow[] | null>(null);
+export function ChangingHere({ cell, rows: given, variables, current, onPick }: ChangingHereProps) {
+  const [loaded, setRows] = useState<ChangingRow[] | null>(null);
+  const rows = given ?? loaded;
 
   useEffect(() => {
+    if (given || !cell) return;
     let live = true;
     loadCellsSummary().then(
       (s) => live && setRows(changingHere(s, cell)),
@@ -24,7 +28,7 @@ export function ChangingHere({ cell, variables, current, onPick }: ChangingHereP
     return () => {
       live = false;
     };
-  }, [cell]);
+  }, [cell, given]);
 
   if (!rows || rows.length === 0) return null;
   const sig = rows.filter((r) => r.significant).length;
@@ -33,8 +37,8 @@ export function ChangingHere({ cell, variables, current, onPick }: ChangingHereP
     <section className="card changing-here" aria-labelledby="changing-here-title">
       <h3 id="changing-here-title">What’s changing here?</h3>
       <p className="muted small">
-        {sig} of {rows.length} variables show a significant trend in this square. Pick one to
-        investigate it.
+        {sig} of {rows.length} variables show a significant trend {given ? "for this region" : "in this square"}.
+        Pick one to investigate it.
       </p>
       <ul>
         {rows.map((r) => {

@@ -16,6 +16,10 @@ import {
   type CaseQuery,
 } from "./api";
 import {
+  areaCell,
+  changingInArea,
+  loadArea,
+  type AreaSummary,
   layerCell,
   loadIndex,
   loadLayer,
@@ -29,7 +33,7 @@ import {
   type RawPlace,
 } from "./data";
 import { snap, type CellCentre } from "./grid";
-import { readUrl, writeUrl } from "./url";
+import { readUrl, writeUrl, type Guess } from "./url";
 import { yearOf } from "./format";
 import type { CaseResponse, Place, Theme, VariableInfo, Verdict } from "./types";
 
@@ -37,6 +41,13 @@ type View = Step | "methods";
 type Status = "idle" | "loading" | "ready" | "error";
 
 const MANILA: Place = { name: "City of Manila", context: "Metro Manila (NCR)", lat: 14.5996, lon: 120.9851 };
+const CAGAYAN_VALLEY: Place = {
+  name: "Cagayan Valley",
+  context: "Region · region average",
+  lat: 17.1906,
+  lon: 121.9864,
+  area: "r-cagayan-valley",
+};
 const TUGUEGARAO: Place = { name: "Tuguegarao City", context: "Cagayan · Cagayan Valley", lat: 17.6066, lon: 121.7319 };
 
 function questionFor(code: string, label: string, name: string): string {
@@ -65,6 +76,10 @@ export default function App() {
   const [methodsAnchor, setMethodsAnchor] = useState<string | undefined>();
   const [variables, setVariables] = useState<VariableInfo[]>(DEFAULT_VARIABLES);
   const [themes, setThemes] = useState<Record<string, string>>(DEFAULT_THEMES);
+  const [setAside, setSetAside] = useState<Record<string, string>>({});
+  // Restoring a case from a link needs each variable's first year, so wait
+  // for the catalogue (or its fallback) before reading the URL.
+  const [varsReady, setVarsReady] = useState(false);
   const [index, setIndex] = useState<OverviewIndex | null>(null);
   const [places, setPlaces] = useState<RawPlace[]>([]);
 
@@ -74,8 +89,14 @@ export default function App() {
   const [layer, setLayer] = useState<Layer | null>(null);
   const [layerFailed, setLayerFailed] = useState(false);
   const [significantOnly, setSignificantOnly] = useState(false);
+  // Step 3: the time period for the time series (defaults to the full record).
+  const [period, setPeriod] = useState<{ start: number; end: number } | null>(null);
+  // Step 4: the user's "does it look like a trend?" call.
+  const [guess, setGuess] = useState<Guess | undefined>(undefined);
   const [place, setPlace] = useState<Place | null>(null);
   const [cell, setCell] = useState<CellCentre | null>(null);
+  // Step 2 as a region average (province / region / island group / country).
+  const [area, setArea] = useState<AreaSummary | null>(null);
 
   // The open case.
   const [query, setQuery] = useState<CaseQuery | null>(null);
@@ -90,9 +111,11 @@ export default function App() {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    fetchVariables().then(({ variables, themes }) => {
+    fetchVariables().then(({ variables, themes, setAside }) => {
       setVariables(variables);
       setThemes(themes);
+      setSetAside(setAside);
+      setVarsReady(true);
     });
     loadIndex().then(setIndex, () => undefined);
     loadPlaces().then(setPlaces, () => undefined);
@@ -113,6 +136,22 @@ export default function App() {
     };
   }, [code, variables]);
 
+  useEffect(() => {
+    const id = place?.area;
+    if (!id) {
+      setArea(null);
+      return;
+    }
+    let live = true;
+    loadArea(id).then(
+      (a) => live && setArea(a),
+      () => live && setArea(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [place?.area]);
+
   // For the Evidence page: the case variable's layer and its second witness.
   const witnessCode = data?.meta.witness ?? null;
   const caseCode = data?.meta.variable ?? null;
@@ -131,6 +170,10 @@ export default function App() {
 
   const infoOf = useCallback((c: string) => variables.find((v) => v.code === c), [variables]);
   const firstYearOf = useCallback((c: string) => infoOf(c)?.first_year ?? 1981, [infoOf]);
+  const firstYearRef = useRef(firstYearOf);
+  firstYearRef.current = firstYearOf;
+  const periodFor = (c: string) =>
+    period ?? { start: firstYearOf(c), end: LAST_YEAR };
 
   /** Fetch a case. `fresh` = a new place/variable (clear old data first). */
   const load = useCallback(async (q: CaseQuery, fresh: boolean) => {
@@ -150,8 +193,23 @@ export default function App() {
       setStatus("ready");
       setAnnounce(`Verdict: ${d.verdict.headline}`);
       if (fresh) {
-        setFullVerdict(d.verdict);
-        setFullFrom(Number(yearOf(d.meta.start)));
+        const first = firstYearRef.current(q.variable);
+        const isFull = q.start <= first && q.end >= LAST_YEAR;
+        if (isFull) {
+          setFullVerdict(d.verdict);
+          setFullFrom(Number(yearOf(d.meta.start)));
+        } else {
+          // A custom period: fetch the full record too, so the "full record"
+          // line on the verdict page always shows the full-record answer.
+          fetchCase({ ...q, start: first, end: LAST_YEAR }).then(
+            (full) => {
+              if (abortRef.current !== ctrl) return;
+              setFullVerdict(full.verdict);
+              setFullFrom(Number(yearOf(full.meta.start)));
+            },
+            () => undefined,
+          );
+        }
       }
     } catch (e) {
       if ((e as Error).name === "AbortError") return;
@@ -161,28 +219,49 @@ export default function App() {
     }
   }, []);
 
-  function openCase(variable: string, p: Place, nextView: Step = 2, start?: number, push = true) {
+  function openCase(
+    variable: string,
+    p: Place,
+    nextView: Step = 2,
+    per?: { start: number; end: number },
+    push = true,
+  ) {
+    const first = firstYearOf(variable);
+    const chosen = per ?? (variable === code ? periodFor(variable) : { start: first, end: LAST_YEAR });
     const q: CaseQuery = {
+      area: p.area,
       lat: p.lat,
       lon: p.lon,
       variable,
-      start: start ?? firstYearOf(variable),
-      end: LAST_YEAR,
+      start: Math.max(chosen.start, first),
+      end: Math.min(chosen.end, LAST_YEAR),
     };
     setPlace(p);
-    setCell(snap(p.lat, p.lon));
+    setCell(p.area ? null : snap(p.lat, p.lon));
     if (!infoOf(variable)?.static_place) setCode(variable);
     setQuery(q);
-    void load(q, start == null || start === firstYearOf(variable));
+    setGuess(undefined);
+    void load(q, true);
     setView(nextView);
-    if (push) writeUrl({ step: nextView, variable, lat: p.lat, lon: p.lon, place: p.name, start });
+    const full = q.start === first && q.end === LAST_YEAR;
+    if (push)
+      writeUrl({
+        step: nextView,
+        variable,
+        lat: p.lat,
+        lon: p.lon,
+        place: p.name,
+        area: p.area,
+        start: full ? undefined : q.start,
+        end: full ? undefined : q.end,
+      });
     window.scrollTo({ top: 0 });
   }
 
   function pickPlace(p: Place) {
     setPlace(p);
-    setCell(snap(p.lat, p.lon));
-    writeUrl({ step: 1, variable: code, lat: p.lat, lon: p.lon, place: p.name });
+    setCell(p.area ? null : snap(p.lat, p.lon));
+    writeUrl({ step: 1, variable: code, lat: p.lat, lon: p.lon, place: p.name, area: p.area });
   }
 
   function pickPoint(lat: number, lon: number) {
@@ -219,7 +298,10 @@ export default function App() {
       lat: place?.lat,
       lon: place?.lon,
       place: place?.name,
-      start: v === 3 && query && query.start !== fullFrom ? query.start : undefined,
+      area: place?.area,
+      start: v !== 1 && query && query.start !== fullFrom ? query.start : undefined,
+      end: v !== 1 && query && query.end !== LAST_YEAR ? query.end : undefined,
+      guess: v !== 1 ? guess : undefined,
     });
     window.scrollTo({ top: 0 });
   }
@@ -232,6 +314,7 @@ export default function App() {
     const info = infoOf(c);
     if (info) setTheme(info.theme);
     setCode(c);
+    setPeriod(null); // each variable starts at its own full record
     writeUrl({ step: view, variable: c, lat: place?.lat, lon: place?.lon, place: place?.name }, "replace");
   }
 
@@ -244,13 +327,14 @@ export default function App() {
 
   // Slider: debounce, cancel stale requests, keep the URL in step.
   const debounceRef = useRef<number | undefined>(undefined);
-  function onStartYearChange(year: number) {
+  function onPeriodChange(start: number, end: number) {
     if (!query) return;
-    const next = { ...query, start: year };
+    const next = { ...query, start, end };
     setQuery(next);
     window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
       void load(next, false);
+      const full = start === fullFrom && end === LAST_YEAR;
       writeUrl(
         {
           step: 3,
@@ -258,7 +342,8 @@ export default function App() {
           lat: next.lat,
           lon: next.lon,
           place: place?.name,
-          start: year === fullFrom ? undefined : year,
+          start: full ? undefined : start,
+          end: full ? undefined : end,
         },
         "replace",
       );
@@ -283,26 +368,36 @@ export default function App() {
       setView(1);
       return;
     }
-    const p: Place = { name: u.place ?? "This place", context: "", lat: u.lat, lon: u.lon };
+    const p: Place = { name: u.place ?? "This place", context: "", lat: u.lat, lon: u.lon, area: u.area };
     if (u.step === 1) {
       setPlace(p);
-      setCell(snap(p.lat, p.lon));
+      setCell(p.area ? null : snap(p.lat, p.lon));
       setView(1);
       return;
     }
-    openCase(u.variable, p, u.step, u.start, false);
+    window.setTimeout(() => setGuess(u.guess), 0);
+    openCase(
+      u.variable,
+      p,
+      u.step,
+      u.start != null || u.end != null
+        ? { start: u.start ?? firstYearOf(u.variable), end: u.end ?? LAST_YEAR }
+        : { start: firstYearOf(u.variable), end: LAST_YEAR },
+      false,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variables]);
 
   const restored = useRef(false);
   useEffect(() => {
+    if (!varsReady) return;
     if (!restored.current) {
       restored.current = true;
       applyUrl();
     }
     window.addEventListener("popstate", applyUrl);
     return () => window.removeEventListener("popstate", applyUrl);
-  }, [applyUrl]);
+  }, [applyUrl, varsReady]);
 
   // Fill in the context line for places restored from a URL.
   useEffect(() => {
@@ -313,7 +408,12 @@ export default function App() {
   }, [place, places]);
 
   const towns = useMemo(() => (cell ? townsInCell(places, cell) : []), [places, cell]);
-  const lCell = layer && cell ? layerCell(layer, cell) : undefined;
+  const lCell =
+    area && place
+      ? areaCell(area, code, place.lat, place.lon)
+      : layer && cell
+        ? layerCell(layer, cell)
+        : undefined;
 
   const alsoCovers = useMemo(() => {
     const names = towns.map((t) => t.n).filter((n) => n !== place?.name);
@@ -322,10 +422,10 @@ export default function App() {
   }, [towns, place]);
 
   const nationalContext = useMemo(() => {
-    if (!layer || !lCell || !query || layer.code !== query.variable || !lCell.sig) return null;
+    if (area || !layer || !lCell || !query || layer.code !== query.variable || !lCell.sig) return null;
     const pct = slopePercentile(layer, lCell.sen);
     return `Changing faster than ${pct}% of the Philippines’ land squares over the same years.`;
-  }, [layer, lCell, query]);
+  }, [area, layer, lCell, query]);
 
   // ---------- Demos: watchable walkthroughs that drive the real app ----------
   function openHowSure() {
@@ -352,7 +452,12 @@ export default function App() {
           run: () => pickPlace(MANILA),
         },
         {
-          title: "3. Four questions, answered",
+          title: "3. Choose the time period",
+          body: "By default we use the full record, 1981–2025. You can narrow it, but under 20 years is too short for a significance verdict.",
+          target: ".period-picker",
+        },
+        {
+          title: "A quick answer, from the full record",
           body: "Is there a trend? How much? Is it significant? How sure? Here: rising about 0.14 °C per decade since 1981, and significant.",
           target: ".answer-card .answers",
         },
@@ -367,8 +472,8 @@ export default function App() {
           target: ".changing-here",
         },
         {
-          title: "Exhibit A: the raw evidence",
-          body: "Every month since 1981, straight from NASA POWER (MERRA-2). The regular waves are the seasons, and they hide any slow change.",
+          title: "4. Create the time series",
+          body: "Exhibit A: every month since 1981 from NASA POWER (MERRA-2). The waves are the seasons; the dark line is a 12-month average that shows the slow drift underneath.",
           target: "#exhibit-a .chart-panel",
           run: () => openCase("T2M", MANILA),
         },
@@ -378,8 +483,14 @@ export default function App() {
           target: "#exhibit-b .chart-panel",
         },
         {
-          title: "The verdict",
-          body: "Rising, how much, and significant: a trend this strong would turn up by chance less than 5 times in 100. The 95% range for the rate doesn’t include zero.",
+          title: "Your call: does it look like a trend?",
+          body: "Before any statistics, a detective makes a call by eye. Here we say Rising. Next, the test checks whether it could just be chance.",
+          target: "#your-call",
+          run: () => setGuess("rising"),
+        },
+        {
+          title: "5. Test for significance",
+          body: "Our call was right: rising about 0.14 °C per decade, and significant. A trend this strong would turn up by chance less than 5 times in 100, and the 95% range doesn’t include zero.",
           target: ".case-summary",
           run: () => goTo(3),
         },
@@ -390,16 +501,16 @@ export default function App() {
           run: openHowSure,
         },
         {
-          title: "Short windows fool you",
-          body: "Start in 2019 and the slope looks huge, but six years is too short to judge. That’s why the full record is the answer.",
+          title: "Short periods fool you",
+          body: "Narrow the period to 2019–2025 and the slope looks huge, but seven years is too short to judge. That’s why the full record is the answer.",
           target: ".slider-card",
-          run: () => onStartYearChange(2019),
+          run: () => onPeriodChange(2019, LAST_YEAR),
         },
         {
           title: "Your turn",
           body: "Pick something to investigate and a place anywhere in the Philippines.",
           run: () => {
-            onStartYearChange(fullFrom);
+            onPeriodChange(fullFrom, LAST_YEAR);
             goHome();
           },
         },
@@ -444,18 +555,34 @@ export default function App() {
           body: "This list ranks every variable for Tuguegarao’s square. Significant trends come first. Try clicking one.",
           target: ".changing-here",
         },
+        {
+          title: "Zoom out to the whole region",
+          body: "Choose Cagayan Valley as the region instead of one square. Averaging 25 squares cancels out much of the noise, and the region’s average temperature is significantly warming: +0.12 °C per decade.",
+          target: ".answer-card",
+          run: () => {
+            changeCode("T2M");
+            pickPlace(CAGAYAN_VALLEY);
+          },
+        },
       ],
     },
   };
 
   const witnesses = useMemo((): [Witness, Witness] | null => {
+    if (area && place && caseCode && witnessCode) {
+      const a = areaCell(area, caseCode, place.lat, place.lon);
+      const b = areaCell(area, witnessCode, place.lat, place.lon);
+      const ia = infoOf(caseCode);
+      const ib = infoOf(witnessCode);
+      return a && b && ia && ib ? [{ info: ia, cell: a }, { info: ib, cell: b }] : null;
+    }
     if (!caseLayers || !cell) return null;
     const a = layerCell(caseLayers.main, cell);
     const b = layerCell(caseLayers.witness, cell);
     const ia = infoOf(caseLayers.main.code);
     const ib = infoOf(caseLayers.witness.code);
     return a && b && ia && ib ? [{ info: ia, cell: a }, { info: ib, cell: b }] : null;
-  }, [caseLayers, cell, infoOf]);
+  }, [caseLayers, cell, infoOf, area, place, caseCode, witnessCode]);
 
   const enabled: Step[] = query ? [1, 2, 3] : [1];
   const qInfo = query ? infoOf(query.variable) : undefined;
@@ -482,10 +609,17 @@ export default function App() {
             layerFailed={layerFailed}
             place={place}
             cell={cell}
-            layerCell={layer && layer.code === code ? lCell : undefined}
+            layerCell={area ? lCell : layer && layer.code === code ? lCell : undefined}
+            highlight={area?.squares ?? null}
+            areaSquares={area?.n_squares}
+            changingRows={area ? changingInArea(area) : undefined}
             towns={towns}
             significantOnly={significantOnly}
             onSignificantOnly={setSignificantOnly}
+            period={periodFor(code)}
+            periodMin={firstYearOf(code)}
+            periodMax={LAST_YEAR}
+            onPeriod={(start, end) => setPeriod({ start, end })}
             onPlace={pickPlace}
             onMapPick={pickPoint}
             onEvidence={() => place && openCase(code, place)}
@@ -496,7 +630,7 @@ export default function App() {
         )}
 
         {view === "methods" && (
-          <Methods index={index} variables={variables} anchor={methodsAnchor} onBack={goHome} />
+          <Methods index={index} variables={variables} setAside={setAside} anchor={methodsAnchor} onBack={goHome} />
         )}
 
         {(view === 2 || view === 3) && status === "error" && (
@@ -536,7 +670,25 @@ export default function App() {
             question={question}
             placeName={place.name}
             alsoCovers={data.meta.cell ? alsoCovers : ""}
+            highlight={area?.squares ?? null}
             witnesses={witnesses}
+            guess={guess}
+            onGuess={(g) => {
+              setGuess(g);
+              writeUrl(
+                {
+                  step: 2,
+                  variable: query?.variable ?? code,
+                  lat: place?.lat,
+                  lon: place?.lon,
+                  place: place?.name,
+                  start: query && query.start !== fullFrom ? query.start : undefined,
+                  end: query && query.end !== LAST_YEAR ? query.end : undefined,
+                  guess: g,
+                },
+                "replace",
+              );
+            }}
             onCrossExamine={() => goTo(3)}
           />
         )}
@@ -549,11 +701,13 @@ export default function App() {
             fullVerdict={fullVerdict}
             fullFrom={fullFrom}
             nationalContext={nationalContext}
-            startYear={query.start < fullFrom ? fullFrom : query.start}
+            start={Math.max(query.start, fullFrom)}
+            end={query.end}
             minYear={fullFrom}
-            maxYear={Number(yearOf(data.meta.end))}
+            maxYear={LAST_YEAR}
             loading={status === "loading"}
-            onStartYearChange={onStartYearChange}
+            onPeriodChange={onPeriodChange}
+            guess={guess}
             onBackToEvidence={() => goTo(2)}
             onOpenAnother={goHome}
           />

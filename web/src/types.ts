@@ -19,6 +19,8 @@ export interface CaseMeta {
   cell: Cell | null;
   /** Code of a variable that measures the same thing another way. */
   witness: string | null;
+  /** Set for region-average cases. */
+  area: { id: string; name: string; kind: string; squares: number } | null;
   start: string; // YYYY-MM
   end: string; // YYYY-MM
   n_months: number;
@@ -98,6 +100,8 @@ export interface VariableInfo {
 
 /** A place the user can pick: from search, the map, or a featured case. */
 export interface Place {
+  /** Region-average case id (province / region / island group / country). */
+  area?: string;
   name: string;
   /** "Benguet · CAR" style context line. */
   context: string;

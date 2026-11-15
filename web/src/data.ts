@@ -6,7 +6,8 @@ import type { Place } from "./types";
 export interface RawPlace {
   n: string; // display name
   o?: string; // original geoBoundaries name, when different
-  k: "region" | "province" | "town";
+  k: "country" | "group" | "region" | "province" | "town";
+  a?: string; // area id, for region-average cases
   p?: string; // province (towns)
   r?: string; // region
   lat: number;
@@ -127,12 +128,16 @@ export function toPlace(p: RawPlace): Place {
     p.k === "town"
       ? [p.p, p.r].filter(Boolean).join(" · ")
       : p.k === "province"
-        ? `Province · ${p.r ?? ""}`
-        : "Region";
-  return { name: p.n, context, lat: p.lat, lon: p.lon };
+        ? `Province · ${p.r ?? ""} · region average`
+        : p.k === "region"
+          ? "Region · region average"
+          : p.k === "group"
+            ? "Island group · region average"
+            : "Whole country · national average";
+  return { name: p.n, context, lat: p.lat, lon: p.lon, area: p.k === "town" ? undefined : p.a };
 }
 
-const KIND_RANK = { town: 0, province: 1, region: 2 } as const;
+const KIND_RANK = { town: 0, province: 1, region: 2, group: 3, country: 4 } as const;
 
 /** Rank: exact > starts-with > word-starts-with > contains; towns first. */
 export function searchPlaces(all: RawPlace[], query: string, limit = 8): RawPlace[] {
@@ -226,4 +231,39 @@ export function changingHere(summary: CellsSummary, c: CellCentre): ChangingRow[
         Number(b.significant) - Number(a.significant) ||
         Math.abs(b.sen) / typical[b.code] - Math.abs(a.sen) / typical[a.code],
     );
+}
+
+/** Region average: the same per-variable answers as a map square. */
+export interface AreaSummary {
+  id: string;
+  name: string;
+  kind: string;
+  n_squares: number;
+  squares: [number, number][];
+  vars: Record<string, Omit<LayerCell, "lat" | "lon" | "g">>;
+}
+
+const areaPromises = new Map<string, Promise<AreaSummary>>();
+
+export function loadArea(id: string): Promise<AreaSummary> {
+  let p = areaPromises.get(id);
+  if (!p) {
+    p = getJson<AreaSummary>(`/data/areas/${encodeURIComponent(id)}.json`);
+    p.catch(() => areaPromises.delete(id));
+    areaPromises.set(id, p);
+  }
+  return p;
+}
+
+/** An area's answer for one variable, shaped like a map square. */
+export function areaCell(area: AreaSummary, code: string, lat: number, lon: number): LayerCell | undefined {
+  const v = area.vars[code];
+  return v ? { ...v, lat, lon, g: "Luzon" } : undefined;
+}
+
+/** "What's changing here?" rows for an area. */
+export function changingInArea(area: AreaSummary): ChangingRow[] {
+  return Object.entries(area.vars)
+    .map(([code, v]) => ({ code, sen: v.sen, significant: v.sig, dir: v.dir, state: v.state }))
+    .sort((a, b) => Number(b.significant) - Number(a.significant) || a.code.localeCompare(b.code));
 }

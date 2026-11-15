@@ -13,6 +13,8 @@ interface AnswerCardProps {
   layer: Layer;
   info: VariableInfo;
   towns: RawPlace[];
+  /** Set for a region average: how many squares were averaged. */
+  areaSquares?: number;
   onEvidence: () => void;
 }
 
@@ -23,7 +25,7 @@ function listTowns(towns: RawPlace[], exclude: string): string {
   return names.length > 3 ? `${shown} and ${names.length - 3} more` : shown;
 }
 
-export function AnswerCard({ place, cell, layer, info, towns, onEvidence }: AnswerCardProps) {
+export function AnswerCard({ place, cell, layer, info, towns, areaSquares, onEvidence }: AnswerCardProps) {
   if (!cell) {
     return (
       <section className="answer-card card" aria-live="polite">
@@ -41,7 +43,7 @@ export function AnswerCard({ place, cell, layer, info, towns, onEvidence }: Answ
   const a = trendAnswers(cell, info, lastYear);
   const size = cellSizeKm(cell.lat);
   const also = listTowns(towns, place.name);
-  const pct = slopePercentile(layer, cell.sen);
+  const pct = layer.cells.length ? slopePercentile(layer, cell.sen) : 0;
   const STATE: Record<LayerCell["state"], string> = {
     confirmed: "Significant",
     step: "Mostly a jump",
@@ -92,15 +94,24 @@ export function AnswerCard({ place, cell, layer, info, towns, onEvidence }: Answ
       />
 
       <p className="answer-cell">
-        {cell.sig && cell.dir !== "flat" && `Changing faster than ${pct}% of the Philippines’ land squares. `}
-        Based on one NASA data square of about {size.ns} × {size.ew} km (average{" "}
-        {cell.mean.toFixed(info.digits)} {info.units}).
-        {also && ` It also covers ${also}.`}
+        {areaSquares ? (
+          <>
+            Average of {areaSquares} NASA data squares covering {place.name}, weighted by how
+            much of its land falls in each (average {cell.mean.toFixed(info.digits)} {info.units}).
+          </>
+        ) : (
+          <>
+            {cell.sig && cell.dir !== "flat" && `Changing faster than ${pct}% of the Philippines’ land squares. `}
+            Based on one NASA data square of about {size.ns} × {size.ew} km (average{" "}
+            {cell.mean.toFixed(info.digits)} {info.units}).
+            {also && ` It also covers ${also}.`}
+          </>
+        )}
       </p>
 
       <div className="answer-actions">
         <button className="btn btn-primary" onClick={onEvidence}>
-          See the evidence
+          4 · Create the time series
         </button>
       </div>
     </section>

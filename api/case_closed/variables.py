@@ -75,7 +75,6 @@ VARIABLES: dict[str, Variable] = {
         why_it_matters="The most direct sign of a warming climate.",
         up_word="Getting warmer",
         down_word="Getting cooler",
-        witness="AIRS_TSURF",
     ),
     "T2M_MAX": Variable(
         code="T2M_MAX",
@@ -293,21 +292,6 @@ VARIABLES: dict[str, Variable] = {
         first_year=2005,
         witness="NO2",
     ),
-    "AIRS_TSURF": Variable(
-        code="AIRS_TSURF",
-        label="Daytime air temperature (AIRS satellite)",
-        units="\u00b0C",
-        definition="Air temperature near the surface measured by NASA's AIRS instrument as its satellite passes over at about 1:30 pm.",
-        source="NASA Aqua AIRS AIRS3STM v7, daytime overpass, via Giovanni",
-        theme="heat",
-        why_it_matters="A satellite witness for warming, independent of the MERRA-2 model.",
-        grid_file="AIRS_TSURF.json",
-        offset=-273.15,  # K -> C
-        up_word="Getting warmer",
-        down_word="Getting cooler",
-        first_year=2003,
-        witness="T2M",
-    ),
 
 }
 
@@ -322,6 +306,19 @@ THEMES = {
     "land": "Land & farming",
     "sky": "Sun & sky",
     "air": "Air",
+}
+
+# Datasets we downloaded, tested and set aside, with the reason (shown on the
+# methods page). Kept here so the decision is visible in code review.
+SET_ASIDE = {
+    "AIRS_TSURF": (
+        "NASA Aqua AIRS daytime surface air temperature (AIRS3STM v7, via Giovanni) "
+        "showed cooling in 208 of 223 squares from 2003, with a sharp drop in 2025, "
+        "while MERRA-2 shows 2024 as the warmest year on record. A drop that large and "
+        "that recent points to a measurement change (Aqua's orbit has been drifting in "
+        "recent years, which shifts the time of day it measures), so we don't use it "
+        "for verdicts."
+    ),
 }
 
 DEFAULT_VARIABLE = "T2M"

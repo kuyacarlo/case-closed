@@ -11,10 +11,12 @@ interface HeaderProps {
   enabled?: Step[];
 }
 
-const STEPS: { n: Step; label: string }[] = [
-  { n: 1, label: "Place" },
-  { n: 2, label: "Evidence" },
-  { n: 3, label: "Verdict" },
+// The challenge's workflow: 1-3 (variable, region, time period) are set up on
+// the home page, 4 is the time series, 5 is the significance test.
+const STEPS: { n: Step; label: string; covers: string }[] = [
+  { n: 1, label: "Set up", covers: "Steps 1–3: variable, region, time period" },
+  { n: 2, label: "Time series", covers: "Step 4: create the time series and examine it" },
+  { n: 3, label: "Significance", covers: "Step 5: test the trend for significance" },
 ];
 
 export function Header({ current, onHome, onStep, onMethods, enabled = [1] }: HeaderProps) {
@@ -30,7 +32,7 @@ export function Header({ current, onHome, onStep, onMethods, enabled = [1] }: He
         </button>
         <div className="header-right">
           <nav className="steps" aria-label="Progress">
-            {STEPS.map(({ n, label }) => {
+            {STEPS.map(({ n, label, covers }) => {
               const isCurrent = n === current;
               const canGo = enabled.includes(n) && !!onStep && !isCurrent;
               return (
@@ -39,7 +41,7 @@ export function Header({ current, onHome, onStep, onMethods, enabled = [1] }: He
                   type="button"
                   className={`step-pill${isCurrent ? " step-current" : ""}`}
                   aria-disabled={!canGo && !isCurrent}
-                  title={!canGo && !isCurrent ? "Pick a place first" : undefined}
+                  title={!canGo && !isCurrent ? `${covers} (pick a place first)` : covers}
                   aria-current={isCurrent ? "step" : undefined}
                   aria-label={`Step ${n}: ${label}`}
                   onClick={() => canGo && onStep?.(n)}

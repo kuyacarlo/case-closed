@@ -11,6 +11,8 @@ export const LAST_YEAR = 2025;
 export const MIN_YEARS_FOR_VERDICT = 20;
 
 export interface CaseQuery {
+  /** Region-average case; when set, lat/lon only position the map. */
+  area?: string;
   lat: number;
   lon: number;
   variable: string;
@@ -28,12 +30,15 @@ export class ApiError extends Error {
 
 export async function fetchCase(q: CaseQuery, signal?: AbortSignal): Promise<CaseResponse> {
   const params = new URLSearchParams({
-    lat: String(q.lat),
-    lon: String(q.lon),
     variable: q.variable,
     start: String(q.start),
     end: String(q.end),
   });
+  if (q.area) params.set("area", q.area);
+  else {
+    params.set("lat", String(q.lat));
+    params.set("lon", String(q.lon));
+  }
   let res: Response;
   try {
     res = await fetch(`${API_BASE}/api/case?${params}`, { signal });
@@ -74,13 +79,21 @@ export const DEFAULT_THEMES: Record<string, string> = {
   air: "Air",
 };
 
-export async function fetchVariables(): Promise<{ variables: VariableInfo[]; themes: Record<string, string> }> {
+export async function fetchVariables(): Promise<{
+  variables: VariableInfo[];
+  themes: Record<string, string>;
+  setAside: Record<string, string>;
+}> {
   try {
     const res = await fetch(`${API_BASE}/api/variables`);
     if (!res.ok) throw new Error();
     const body = await res.json();
-    return { variables: body.variables as VariableInfo[], themes: body.themes ?? DEFAULT_THEMES };
+    return {
+      variables: body.variables as VariableInfo[],
+      themes: body.themes ?? DEFAULT_THEMES,
+      setAside: body.set_aside ?? {},
+    };
   } catch {
-    return { variables: DEFAULT_VARIABLES, themes: DEFAULT_THEMES };
+    return { variables: DEFAULT_VARIABLES, themes: DEFAULT_THEMES, setAside: {} };
   }
 }

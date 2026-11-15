@@ -3,6 +3,7 @@ import { AnswerCard } from "../components/AnswerCard";
 import { ChangingHere } from "../components/ChangingHere";
 import { MapLegend } from "../components/MapLegend";
 import { PhMap } from "../components/PhMap";
+import { PeriodPicker } from "../components/PeriodPicker";
 import { PlaceSearch } from "../components/PlaceSearch";
 import { ThemePicker } from "../components/ThemePicker";
 import { scaleMax } from "../components/colour";
@@ -34,6 +35,13 @@ interface ExploreProps {
   onEvidence: () => void;
   onFeatured: (id: "manila-no2") => void;
   onDemo: (id: DemoId) => void;
+  highlight: [number, number][] | null;
+  areaSquares?: number;
+  changingRows?: import("../data").ChangingRow[];
+  period: { start: number; end: number };
+  periodMin: number;
+  periodMax: number;
+  onPeriod: (start: number, end: number) => void;
   onMethods: (anchor?: string) => void;
 }
 
@@ -79,24 +87,49 @@ export function Explore(props: ExploreProps) {
           {info && <p className="definition-box small">{info.definition}</p>}
 
           <div className="where-step">
-            <p className="field">2 · Where?</p>
+            <p className="field">2 · Region: where?</p>
             <PlaceSearch onPick={props.onPlace} />
           </div>
 
+          <PeriodPicker
+            idPrefix="home-period"
+            label="3 · Time period"
+            min={props.periodMin}
+            max={props.periodMax}
+            start={props.period.start}
+            end={props.period.end}
+            onChange={props.onPeriod}
+          />
+
           <div ref={cardRef} className="stack-md">
-            <p className="field">3 · The answer</p>
-            {place && layer && info ? (
+            <p className="field">Quick answer (full record)</p>
+            {place &&
+              (props.period.start !== props.periodMin || props.period.end !== props.periodMax) && (
+                <p className="notice small">
+                  The map and this quick answer use the full record ({props.periodMin}–
+                  {props.periodMax}). Your time series will use {props.period.start}–
+                  {props.period.end}.
+                </p>
+              )}
+            {place && (layer || props.areaSquares) && info ? (
               <>
                 <AnswerCard
                   place={place}
                   cell={layerCell}
-                  layer={layer}
+                  layer={layer ?? { code, window: [props.periodMin, props.periodMax], cells: [] }}
                   info={info}
                   towns={towns}
+                  areaSquares={props.areaSquares}
                   onEvidence={props.onEvidence}
                 />
-                {cell && (
-                  <ChangingHere cell={cell} variables={variables} current={code} onPick={props.onCode} />
+                {(cell || props.changingRows) && (
+                  <ChangingHere
+                    cell={cell}
+                    rows={props.changingRows}
+                    variables={variables}
+                    current={code}
+                    onPick={props.onCode}
+                  />
                 )}
               </>
             ) : (
@@ -124,6 +157,7 @@ export function Explore(props: ExploreProps) {
             max={max}
             significantOnly={props.significantOnly}
             selected={cell}
+            highlight={props.highlight}
             onPick={props.onMapPick}
             label="Map of the Philippines. Tap a square to see its answer, or use the search box."
           />

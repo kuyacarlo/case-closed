@@ -53,7 +53,7 @@ export function PlaceSearch({ onPick, autoFocus }: PlaceSearchProps) {
   return (
     <div className="place-search">
       <label className="field" htmlFor={`${listId}-input`}>
-        Search a city, town or province
+        Search a town, city, province, region or island group
       </label>
       <div className="place-input-wrap">
       <input
@@ -67,7 +67,7 @@ export function PlaceSearch({ onPick, autoFocus }: PlaceSearchProps) {
         aria-activedescendant={showList ? `${listId}-${active}` : undefined}
         autoComplete="off"
         autoFocus={autoFocus}
-        placeholder={all ? "e.g. Tuguegarao, Iloilo, Davao del Sur" : "Loading places…"}
+        placeholder={all ? "e.g. Tuguegarao, Cebu, Cagayan Valley, Mindanao" : "Loading places…"}
         value={text}
         onChange={(e) => {
           setText(e.target.value);

@@ -22,6 +22,8 @@ interface PhMapProps {
   /** Hide squares whose trend isn't significant. */
   significantOnly?: boolean;
   selected: CellCentre | null;
+  /** Squares of a selected region, outlined together. */
+  highlight?: [number, number][] | null;
   onPick?: (lat: number, lon: number) => void;
   /** Small, non-interactive map zoomed to the selected cell. */
   mini?: boolean;
@@ -49,9 +51,25 @@ function FlyTo({ selected, mini }: { selected: CellCentre | null; mini?: boolean
   return null;
 }
 
+function FitSquares({ squares }: { squares: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    const lats = squares.map((q) => q[0]);
+    const lons = squares.map((q) => q[1]);
+    map.fitBounds(
+      [
+        [Math.min(...lats) - 0.3, Math.min(...lons) - 0.4],
+        [Math.max(...lats) + 0.3, Math.max(...lons) + 0.4],
+      ],
+      { animate: false },
+    );
+  }, [squares, map]);
+  return null;
+}
+
 let outlinesCache: GeoJSON.FeatureCollection | null = null;
 
-export function PhMap({ layer, theme, max, significantOnly, selected, onPick, mini, label }: PhMapProps) {
+export function PhMap({ layer, theme, max, significantOnly, selected, highlight, onPick, mini, label }: PhMapProps) {
   const [outlines, setOutlines] = useState<GeoJSON.FeatureCollection | null>(outlinesCache);
 
   useEffect(() => {
@@ -122,6 +140,15 @@ export function PhMap({ layer, theme, max, significantOnly, selected, onPick, mi
               />
             );
           })}
+        {highlight?.map(([la, lo]) => (
+          <Rectangle
+            key={`hl-${la},${lo}`}
+            bounds={cellBounds({ lat: la, lon: lo })}
+            interactive={false}
+            pathOptions={{ color: "#0f1a24", weight: 2, fill: !!mini, fillColor: "#1d4ed8", fillOpacity: 0.12 }}
+          />
+        ))}
+        {highlight && highlight.length > 0 && <FitSquares squares={highlight} />}
         {selected && (
           <Rectangle
             bounds={cellBounds(selected)}

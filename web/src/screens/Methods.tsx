@@ -6,6 +6,8 @@ import "./Screens.css";
 interface MethodsProps {
   index: OverviewIndex | null;
   variables: VariableInfo[];
+  /** Datasets downloaded, tested and set aside, with the reason. */
+  setAside: Record<string, string>;
   anchor?: string;
   onBack: () => void;
 }
@@ -67,7 +69,7 @@ function RainBreakChart({ index }: { index: OverviewIndex }) {
   );
 }
 
-export function Methods({ index, variables, anchor, onBack }: MethodsProps) {
+export function Methods({ index, variables, setAside, anchor, onBack }: MethodsProps) {
   useEffect(() => {
     if (anchor) document.getElementById(anchor)?.scrollIntoView();
   }, [anchor]);
@@ -154,6 +156,7 @@ export function Methods({ index, variables, anchor, onBack }: MethodsProps) {
           <li><strong>Always report the trend.</strong> Direction and size are shown even when the trend isn’t significant; a longer record might make it so.</li>
           <li><strong>Refuse short records.</strong> Under 20 years we don’t call a trend significant at all.</li>
           <li><strong>Significant</strong> means the honest p-value is below 0.05: a trend this strong would turn up by chance less than 5 times in 100.</li>
+          <li><strong>Regions</strong> (provinces, regions, island groups, the whole country) average their squares’ monthly values, weighted by how much of the region’s land falls in each square.</li>
           <li><strong>Across the map,</strong> we test about 220 squares at once, so we also report how many trends survive a Benjamini-Hochberg correction for multiple testing.</li>
         </ol>
         <p className="muted small">
@@ -198,6 +201,23 @@ export function Methods({ index, variables, anchor, onBack }: MethodsProps) {
         </p>
         {index && <RainBreakChart index={index} />}
       </section>
+
+      {Object.keys(setAside).length > 0 && (
+        <section className="stack-sm" id="set-aside">
+          <h2>Witnesses we set aside</h2>
+          <p>
+            Not every dataset passes the detective’s cross-examination. These were downloaded
+            and tested, then left out of the verdicts:
+          </p>
+          <ul className="method-steps">
+            {Object.entries(setAside).map(([code, why]) => (
+              <li key={code}>
+                <code>{code}</code>: {why}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="stack-sm">
         <h2>What this can’t tell you</h2>

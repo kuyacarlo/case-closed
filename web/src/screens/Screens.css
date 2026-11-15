@@ -659,3 +659,19 @@
   font-weight: 700;
   font-size: 19px;
 }
+
+.guess-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.your-call .closing-row {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.guess-line {
+  display: block;
+  font-size: 15px;
+  color: var(--on-dark);
+  margin-bottom: 4px;
+}

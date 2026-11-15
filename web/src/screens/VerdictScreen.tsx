@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { MIN_YEARS_FOR_VERDICT } from "../api";
 import { formatP, yearOf } from "../format";
+import { PeriodPicker } from "../components/PeriodPicker";
+import type { Guess } from "../url";
 import type { CaseResponse, Verdict } from "../types";
 import "./Screens.css";
 
@@ -13,11 +14,14 @@ interface VerdictProps {
   fullFrom: number;
   /** e.g. "Warming faster than 72% of the Philippines' land areas." */
   nationalContext: string | null;
-  startYear: number;
+  start: number;
+  end: number;
   minYear: number;
   maxYear: number;
   loading: boolean;
-  onStartYearChange: (year: number) => void;
+  onPeriodChange: (start: number, end: number) => void;
+  /** The user's "does it look like a trend?" call from the Evidence step. */
+  guess?: Guess;
   onBackToEvidence: () => void;
   onOpenAnother: () => void;
 }
@@ -29,23 +33,36 @@ const STAMP: Record<Verdict["state"], string> = {
   too_short: "Verdict: Too short to judge",
 };
 
+/** Compare the user's eyeball call with the test (the data-detective lesson). */
+function guessLine(guess: Guess | undefined, v: Verdict): string | null {
+  if (!guess) return null;
+  const said = { rising: "rising", falling: "falling", none: "no clear trend" }[guess];
+  const leans = v.direction === "flat" ? "flat" : v.direction;
+  if (v.state === "too_short") return `You said ${said}. The period is too short for the test to judge either way.`;
+  if (guess === "none") {
+    return v.significant
+      ? `You saw no clear trend, but the test finds a significant ${leans} trend. Slow changes hide behind the seasons.`
+      : `You saw no clear trend, and the test agrees it isn’t significant (it leans ${leans}).`;
+  }
+  if (guess === leans) {
+    return v.significant
+      ? `You said ${said}. The test agrees, and it’s significant.`
+      : `Your eye saw ${said === "rising" ? "a rise" : "a fall"}, and the line does lean that way, but the test says it could still be chance.`;
+  }
+  return `You said ${said}, but the data lean ${leans}${v.significant ? ", and significantly so" : ""}. Easy to misjudge by eye.`;
+}
+
 function signed(x: number, d: number): string {
   return `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(d)}`;
 }
 
 export function VerdictScreen(props: VerdictProps) {
-  const { data, startYear, minYear, maxYear, loading, fullVerdict } = props;
+  const { data, start, end, minYear, maxYear, loading, fullVerdict } = props;
   const { meta, trend, verdict } = data;
   const units = meta.units;
   const d = Math.abs(verdict.rate_per_decade) < 0.1 ? 3 : 2;
   const windowEnd = Number(yearOf(meta.end));
-  const windowYears = windowEnd - startYear + 1;
-  const exploratory = windowYears < MIN_YEARS_FOR_VERDICT;
-  const sliderMax = Math.max(minYear + 1, maxYear - 5);
-  // Start years after this give windows under the minimum.
-  const shortFrom = maxYear - MIN_YEARS_FOR_VERDICT + 2;
-  const shortPct = Math.max(0, Math.min(100, ((shortFrom - minYear) / (sliderMax - minYear)) * 100));
-  const atFull = startYear === props.fullFrom;
+  const atFull = start === props.fullFrom && end === maxYear;
   const [copied, setCopied] = useState<"idle" | "ok" | "fail">("idle");
 
   async function copyLink() {
@@ -58,10 +75,6 @@ export function VerdictScreen(props: VerdictProps) {
     window.setTimeout(() => setCopied("idle"), 2500);
   }
 
-  // Every 5 years; every 10 on narrow screens so labels don't collide.
-  const tickStep = typeof window !== "undefined" && window.innerWidth < 480 ? 10 : 5;
-  const tickYears: number[] = [];
-  for (let y = Math.ceil(minYear / tickStep) * tickStep; y <= sliderMax; y += tickStep) tickYears.push(y);
 
   return (
     <div className="container stack-lg">
@@ -78,6 +91,9 @@ export function VerdictScreen(props: VerdictProps) {
         aria-busy={loading}
       >
         <span className="verdict-stamp">{STAMP[verdict.state]}</span>
+        {guessLine(props.guess, verdict) && (
+          <p className="guess-line">{guessLine(props.guess, verdict)}</p>
+        )}
         <p className="verdict-text">{verdict.headline}</p>
         <dl className="summary-rows">
           <div>
@@ -129,63 +145,35 @@ export function VerdictScreen(props: VerdictProps) {
           <p className="verdict-secondary">{props.nationalContext}</p>
         )}
         <p className="verdict-secondary num">
-          Window {startYear}–{windowEnd} · {meta.n_months} months · {meta.source}
+          Period {yearOf(meta.start)}–{windowEnd} · {meta.n_months} months · {meta.source}
         </p>
       </section>
 
       <section className="section stack-md">
-        <h2>Try a different start year</h2>
+        <h2>Try a different time period</h2>
         <p className="lead">
-          A shorter window is noisier. Picking start years until the answer looks
-          exciting is a way to fool yourself, so treat the full record as the answer.
+          A shorter period is noisier. Picking years until the answer looks exciting is a
+          way to fool yourself, so treat the full record as the answer.
         </p>
         <div className="card slider-card">
           {fullVerdict && (
             <p className="slider-anchor">
-              <span className="strip-label">Full record, {props.fullFrom}–{maxYear}</span>
+              <span className="strip-label">
+                Full record, {props.fullFrom}–{maxYear}
+              </span>
               {fullVerdict.headline}
             </p>
           )}
-          <div className="slider-track-wrap">
-            <div
-              className="slider-short-zone"
-              style={{ left: `${shortPct}%` }}
-              aria-hidden="true"
-              title="Under 20 years: exploratory only"
-            />
-            <input
-              type="range"
-              min={minYear}
-              max={sliderMax}
-              value={startYear}
-              onChange={(e) => props.onStartYearChange(Number(e.target.value))}
-              aria-label="Start year"
-              aria-valuetext={`Start year ${startYear}, ${windowYears}-year window`}
-            />
-          </div>
-          <div className="slider-ticks num" aria-hidden="true">
-            {tickYears.map((y) => (
-              <span key={y} style={{ left: `${((y - minYear) / (sliderMax - minYear)) * 100}%` }}>
-                {y}
-              </span>
-            ))}
-          </div>
-          <div className="slider-readout">
-            <p className="num">
-              Window: {startYear}–{windowEnd} · {windowYears} years
-              {exploratory && <span className="chip-short">Exploratory</span>}
-              {loading && <span className="slider-loading"> · updating…</span>}
-            </p>
-            {!atFull && (
-              <button className="link-btn" onClick={() => props.onStartYearChange(props.fullFrom)}>
-                Reset to full record
-              </button>
-            )}
-          </div>
-          <p className="slider-key">
-            <span className="key-short" /> Shaded: windows under {MIN_YEARS_FOR_VERDICT} years,
-            too short to call
-          </p>
+          <PeriodPicker
+            idPrefix="verdict-period"
+            label="Time period"
+            min={minYear}
+            max={maxYear}
+            start={start}
+            end={end}
+            onChange={props.onPeriodChange}
+          />
+          {loading && <p className="slider-loading small">Updating…</p>}
         </div>
       </section>
 

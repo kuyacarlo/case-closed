@@ -33,23 +33,22 @@ overconfident. Accounting for the 0.52 lag-1 autocorrelation shrinks 528 months
 to an effective 169, and the honest p-value lands at 0.002. Still a real trend,
 but the honest number is the one you can defend.
 
-## Every place in the Philippines
+## The challenge's workflow, step by step
 
-Search any of 1,751 regions, provinces, cities and municipalities, or tap the
-map. Each place snaps to its **NASA POWER grid square** (MERRA-2, 0.5° × 0.625°,
-about 55 km across), and the app says which other towns share that square.
+| Step | In the app |
+| --- | --- |
+| **1 · Variable** | Pick a theme (heat, water, land, sun & sky, air), then one of 15 variables, each with a plain definition and why it matters. "What's changing here?" ranks every variable for the chosen place. |
+| **2 · Region** | Any of 1,647 towns and cities (one ~55 km NASA square), or a **region average**: 87 provinces, 17 regions, the 3 island groups or the whole Philippines, averaged over their squares and weighted by land area. Or tap the map. |
+| **3 · Time period** | A start and end year (defaults to each variable's full record). Under 20 years the app refuses a significance verdict. |
+| **4 · Time series** | Exhibit A (every month, with a 12-month average line), Exhibit B (seasons removed, trend line), Exhibit C (a second NASA source, when there is one), then **"Your call: does it look like a trend?"** |
+| **5 · Significance** | Is there a trend, how much, is it significant (honest Mann-Kendall p, 95% range), how sure, and how your call compares. |
 
-The home map shows a **national overview**: the trend in every one of the 180
-squares that cover Philippine land, precomputed with exactly the same code the
-API uses, so the map and a case page always agree. Because 180 squares are
-tested at once, the legend also reports how many trends survive a
-Benjamini-Hochberg correction for multiple testing.
+Two watchable demos walk through it (Manila: a significant trend; Tuguegarao,
+then Cagayan Valley: a trend that only shows up clearly as a region average).
 
-| Featured case | Question | Source | What it shows |
-| --- | --- | --- | --- |
-| **Air temperature** | Is Metro Manila getting hotter? | NASA POWER (model-based) | Clear trend, +0.14 °C/decade since 1981 |
-| **A faulty witness** | Why does rainfall start in 2000? | NASA POWER (model-based) | A nationwide 1999 jump in the data, caught and excluded |
-| **Nitrogen dioxide** | Did Manila's air get cleaner? | Sentinel-5P TROPOMI (ESA) | Too short to call: 7 years of data |
+The home map shows every one of the 223 squares that touch Philippine land, coloured by
+direction and rate (faded when not significant), with counts of rises and falls by
+island group and a Benjamini-Hochberg multiple-testing note.
 
 ## How a verdict is built
 
@@ -85,7 +84,6 @@ Login token in the git-ignored `api/.env`; the deployed app never calls Giovanni
 | Root-zone soil water | GLDAS Noah 2.1 monthly | 2000–2025 |
 | Surface runoff | GLDAS Noah 2.1 monthly | 2000–2025 |
 | Nitrogen dioxide | Aura OMI OMNO2d v003 (daily → monthly) | 2005–2025 |
-| Daytime air temperature | Aqua AIRS AIRS3STM v7 | 2003–2025 |
 
 **From [NASA POWER](https://power.larc.nasa.gov/)** (monthly point API, no login):
 MERRA-2 reanalysis temperature (average, monthly hottest and coolest), rainfall,
@@ -93,7 +91,13 @@ evaporation, root-zone soil wetness, humidity and wind; CERES SYN1deg sunlight
 and cloud. These are labelled **model-based** (MERRA-2) in the UI.
 
 Where two sources measure the same thing (e.g. MERRA-2 vs GPM rainfall, MERRA-2
-vs AIRS temperature), the Evidence page calls the second one as a **witness**.
+vs GLDAS evaporation and soil water), the Evidence page calls the second one as a
+**witness**.
+
+**Set aside:** Aqua AIRS daytime surface air temperature was downloaded and tested,
+but it showed cooling in 208 of 223 squares with a sharp 2025 drop while MERRA-2
+shows 2024 as the warmest year, which points to a measurement change (Aqua's orbit
+has been drifting). It is documented on the methods page and not used for verdicts.
 
 **Data-break detector.** Across all PH squares the MERRA-2 moisture record
 (rainfall, evaporation, soil moisture; humidity jumps too) shifts in 1999 at
@@ -130,6 +134,7 @@ uv run --with shapely python ../tools/build_places.py   # places + 223 land squa
 uv run python ../tools/fetch_giovanni.py                 # NASA Giovanni (needs api/.env)
 uv run python ../tools/build_nasa_grids.py               # -> data/nasa/*.json
 uv run python ../tools/build_ph_overview.py              # -> web/public/data/overview/
+uv run python ../tools/build_areas.py                    # -> data/areas/, web/public/data/areas/
 ```
 
 Deployed to **Vercel** (one project, FastAPI + SPA on the same origin) via
@@ -142,7 +147,7 @@ Backend (Python, [uv](https://docs.astral.sh/uv/)):
 ```
 cd api
 uv sync --extra dev
-uv run pytest -q                      # 49 tests
+uv run pytest -q                      # 59 tests
 uv run uvicorn case_closed.app:app --port 8000
 ```
 

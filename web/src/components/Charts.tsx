@@ -53,15 +53,30 @@ function ticksBetween(lo: number, hi: number, step: number): number[] {
 /** Exhibit A: raw monthly series as a blue line on a grey panel.
  * Temperature gets an axis fitted to the data (starting at 0 °C flattened the
  * whole signal); amounts such as rainfall keep 0 as the floor. */
+/** Centred 12-month running mean (null at the ends), to see past the seasons. */
+function runningMean12(series: SeriesPoint[]): (number | null)[] {
+  return series.map((_, i) => {
+    if (i < 6 || i + 6 > series.length) return null;
+    let sum = 0;
+    for (let k = i - 6; k < i + 6; k++) sum += series[k].value;
+    return sum / 12;
+  });
+}
+
 export function EvidenceChart({
   series,
   units,
   zeroBased,
+  showAverage = false,
 }: {
   series: SeriesPoint[];
   units: string;
   zeroBased: boolean;
+  /** Overlay a 12-month running average to make slow drifts visible. */
+  showAverage?: boolean;
 }) {
+  const avg = showAverage ? runningMean12(series) : null;
+  const chartData = avg ? series.map((p, i) => ({ ...p, avg12: avg[i] })) : series;
   const vals = series.map((p) => p.value);
   const min = Math.min(...vals);
   const max = Math.max(...vals);
@@ -72,7 +87,7 @@ export function EvidenceChart({
   return (
     <div className="chart-panel">
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={series} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
+        <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
           <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis
             dataKey="t"
@@ -96,7 +111,7 @@ export function EvidenceChart({
             }}
           />
           <Tooltip
-            formatter={(v) => [`${Number(v).toFixed(2)} ${units}`, "Value"]}
+            formatter={(v, name) => [`${Number(v).toFixed(2)} ${units}`, name === "avg12" ? "12-month average" : "Value"]}
             labelFormatter={(t) => t}
             contentStyle={tooltipStyle}
           />
@@ -105,9 +120,21 @@ export function EvidenceChart({
             dataKey="value"
             stroke={BLUE}
             strokeWidth={1.5}
+            strokeOpacity={showAverage ? 0.45 : 1}
             dot={false}
             isAnimationActive={false}
           />
+          {showAverage && (
+            <Line
+              type="monotone"
+              dataKey="avg12"
+              stroke="#0f1a24"
+              strokeWidth={2.5}
+              dot={false}
+              connectNulls={false}
+              isAnimationActive={false}
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

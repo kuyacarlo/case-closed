@@ -166,14 +166,67 @@ def main() -> None:
         "features": [{"type": "Feature", "properties": {"n": display(n)}, "geometry": rounded(g)} for n, g in provinces],
     }
 
+    # Areas for region-average analysis: every province, region, island
+    # group and the whole country, with each square weighted by how much of
+    # the area's land falls inside it.
+    import re
+
+    def slug(kind: str, name: str) -> str:
+        return kind[0] + "-" + re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()).strip("-")
+
+    groups: dict[str, list] = {}
+    for name, geom in regions:
+        groups.setdefault(ISLAND_GROUP[name], []).append(geom)
+    area_shapes = (
+        [("province", n, g) for n, g in provinces]
+        + [("region", n, g) for n, g in regions]
+        + [("group", n, unary_union(gs)) for n, gs in groups.items()]
+        + [("country", "Philippines", land)]
+    )
+    cell_set = {(c["lat"], c["lon"]) for c in cell_list}
+    areas = []
+    for kind, name, geom in area_shapes:
+        minx, miny, maxx, maxy = geom.bounds
+        weights = []
+        lat = snap(miny, minx).lat
+        while lat <= maxy + DLAT:
+            lon = snap(lat, minx).lon
+            while lon <= maxx + DLON:
+                c = snap(lat, lon)
+                if (c.lat, c.lon) in cell_set:
+                    b = box(c.lon - DLON / 2, c.lat - DLAT / 2, c.lon + DLON / 2, c.lat + DLAT / 2)
+                    a = geom.intersection(b).area
+                    if a > 0:
+                        weights.append([c.lat, c.lon, round(a, 6)])
+                lon += DLON
+            lat += DLAT
+        if not weights:
+            continue
+        total = sum(w for *_, w in weights)
+        weights = [[la, lo, round(w / total, 5)] for la, lo, w in weights]
+        areas.append({"id": slug(kind, name), "name": display(name), "kind": kind, "squares": weights})
+    (ROOT / "tools" / "ph_areas.json").write_text(json.dumps({"areas": areas}, ensure_ascii=False))
+
+    # Searchable entries for island groups and the whole country, and area ids
+    # on provinces and regions so a pick can open an area-average case.
+    ids = {(a["kind"], a["name"]): a["id"] for a in areas}
+    for pl in places:
+        if pl["k"] in ("province", "region"):
+            pl["a"] = ids.get((pl["k"], pl["n"]))
+    for kind, name, geom in area_shapes:
+        if kind in ("group", "country"):
+            pt = geom.representative_point()
+            places.append({"n": name, "k": kind, "a": ids.get((kind, display(name))),
+                           "lat": round(pt.y, 4), "lon": round(pt.x, 4)})
+
     OUT_WEB.mkdir(parents=True, exist_ok=True)
     (OUT_WEB / "ph_places.json").write_text(json.dumps(
         {"attribution": outlines["attribution"], "places": places}, ensure_ascii=False, separators=(",", ":")))
     (OUT_WEB / "ph_provinces.geojson").write_text(json.dumps(outlines, ensure_ascii=False, separators=(",", ":")))
     (ROOT / "tools" / "ph_cells.json").write_text(json.dumps({"dlat": DLAT, "dlon": DLON, "cells": cell_list}))
 
-    kinds = {k: sum(1 for p in places if p["k"] == k) for k in ("region", "province", "town")}
-    print(f"places: {kinds}; land cells: {len(cell_list)} (town cells {len(town_cells)})")
+    kinds = {k: sum(1 for p in places if p["k"] == k) for k in ("country", "group", "region", "province", "town")}
+    print(f"places: {kinds}; land cells: {len(cell_list)} (town cells {len(town_cells)}); areas: {len(areas)}")
 
 
 if __name__ == "__main__":

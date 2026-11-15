@@ -20,7 +20,7 @@ export function ThemePicker({ variables, themes, theme, code, onTheme, onCode }:
   return (
     <div className="theme-picker">
       <fieldset className="theme-chips">
-        <legend className="field">1 · What do you want to investigate?</legend>
+        <legend className="field">1 · Variable: what do you want to investigate?</legend>
         {order.map((t) => (
           <label key={t} className={t === theme ? "is-on" : undefined}>
             <input type="radio" name="theme" value={t} checked={t === theme} onChange={() => onTheme(t)} />

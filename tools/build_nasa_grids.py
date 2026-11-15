@@ -35,7 +35,7 @@ CODES = {
     "GLDAS_ROOTMOIST": "GLDAS_ROOTMOIST",
     "GLDAS_RUNOFF": "GLDAS_RUNOFF",
     "OMI_NO2": "OMI_NO2",
-    "AIRS_TSURF": "AIRS_TSURF",
+    # AIRS_TSURF is downloaded but set aside (see variables.SET_ASIDE).
 }
 
 

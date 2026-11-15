@@ -3,7 +3,9 @@ import { PhMap } from "../components/PhMap";
 import { WitnessPanel, type Witness } from "../components/WitnessPanel";
 import { describeSeries, yearOf } from "../format";
 import { cellSizeKm } from "../grid";
+import { useState } from "react";
 import type { CaseResponse } from "../types";
+import type { Guess } from "../url";
 import "./Screens.css";
 
 interface EvidenceProps {
@@ -13,10 +15,31 @@ interface EvidenceProps {
   alsoCovers: string;
   /** The case's own variable and its second witness, when both are mapped. */
   witnesses: [Witness, Witness] | null;
+  /** Region squares to outline on the mini map. */
+  highlight: [number, number][] | null;
+  guess: Guess | undefined;
+  onGuess: (g: Guess) => void;
   onCrossExamine: () => void;
 }
 
-export function Evidence({ data, question, placeName, alsoCovers, witnesses, onCrossExamine }: EvidenceProps) {
+const GUESSES: { g: Guess; label: string }[] = [
+  { g: "rising", label: "▲ Rising" },
+  { g: "falling", label: "▼ Falling" },
+  { g: "none", label: "■ No clear trend" },
+];
+
+export function Evidence({
+  data,
+  question,
+  placeName,
+  alsoCovers,
+  witnesses,
+  highlight,
+  guess,
+  onGuess,
+  onCrossExamine,
+}: EvidenceProps) {
+  const [showAverage, setShowAverage] = useState(true);
   const { meta, series, trend } = data;
   const startYear = yearOf(meta.start);
   const endYear = yearOf(meta.end);
@@ -39,7 +62,12 @@ export function Evidence({ data, question, placeName, alsoCovers, witnesses, onC
             <span className="strip-label">Where</span>
             <p>
               {placeName}
-              {size ? (
+              {meta.area ? (
+                <span className="muted">
+                  {" "}
+                  · average of {meta.area.squares} NASA data squares, weighted by land area
+                </span>
+              ) : size ? (
                 <span className="muted">
                   {" "}
                   · one NASA data square, about {size.ns} × {size.ew} km, centred on{" "}
@@ -68,12 +96,13 @@ export function Evidence({ data, question, placeName, alsoCovers, witnesses, onC
             </p>
           </div>
         </div>
-        {meta.cell && (
+        {(meta.cell || (highlight && highlight.length > 0)) && (
           <PhMap
+            highlight={highlight}
             layer={null}
             theme="heat"
             max={1}
-            selected={{ lat: meta.cell.lat, lon: meta.cell.lon }}
+            selected={meta.cell ? { lat: meta.cell.lat, lon: meta.cell.lon } : null}
             mini
             label={`Map showing the data square for ${placeName}`}
           />
@@ -97,7 +126,11 @@ export function Evidence({ data, question, placeName, alsoCovers, witnesses, onC
           The regular waves are the seasons.{" "}
           <span className="muted">{meta.definition}</span>
         </p>
-        <EvidenceChart series={series} units={meta.units} zeroBased={zeroBased} />
+        <label className="switch">
+          <input type="checkbox" checked={showAverage} onChange={(e) => setShowAverage(e.target.checked)} />
+          Show the 12-month average (smooths out the seasons)
+        </label>
+        <EvidenceChart series={series} units={meta.units} zeroBased={zeroBased} showAverage={showAverage} />
         <p className="chart-summary">{describeSeries(series, meta.units)}</p>
       </section>
 
@@ -126,13 +159,35 @@ export function Evidence({ data, question, placeName, alsoCovers, witnesses, onC
 
       {witnesses && <WitnessPanel main={witnesses[0]} second={witnesses[1]} />}
 
-      <section className="section closing-row card">
-        <p className="lead" style={{ margin: 0 }}>
-          There’s a line. Is it a real change, or could natural ups and downs draw it?
+      <section className="section card your-call stack-md" id="your-call">
+        <h2>
+          <span className="exhibit">Step 4</span> Your call: does it look like a trend?
+        </h2>
+        <p className="lead">
+          Look at the two exhibits. Before any statistics, what does your eye say? Then the
+          test will tell you whether it could just be chance.
         </p>
-        <button className="btn btn-primary" onClick={onCrossExamine}>
-          See the verdict
-        </button>
+        <div className="guess-buttons" role="group" aria-label="Your call">
+          {GUESSES.map(({ g, label }) => (
+            <button
+              key={g}
+              type="button"
+              className={`btn ${guess === g ? "btn-primary" : "btn-outline"}`}
+              aria-pressed={guess === g}
+              onClick={() => onGuess(g)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="closing-row">
+          <p className="muted" style={{ margin: 0 }}>
+            {guess ? "Locked in. Now test it." : "Make your call, or skip straight to the test."}
+          </p>
+          <button className="btn btn-primary" onClick={onCrossExamine}>
+            5 · Test for significance
+          </button>
+        </div>
       </section>
     </div>
   );

@@ -37,7 +37,13 @@ def test_outside_grid_raises(grid_dir):
 
 def test_nasa_variables_are_registered():
     from case_closed.variables import VARIABLES, POWER_CODES
-    for code in ("IMERG", "GLDAS_EVAP", "GLDAS_ROOTMOIST", "GLDAS_RUNOFF", "OMI_NO2", "AIRS_TSURF"):
+    for code in ("IMERG", "GLDAS_EVAP", "GLDAS_ROOTMOIST", "GLDAS_RUNOFF", "OMI_NO2"):
         v = VARIABLES[code]
         assert v.grid_file and "Giovanni" in v.source and v.definition
         assert code not in POWER_CODES
+
+
+def test_airs_is_set_aside_with_a_reason():
+    from case_closed.variables import SET_ASIDE, VARIABLES
+    assert "AIRS_TSURF" not in VARIABLES
+    assert "drift" in SET_ASIDE["AIRS_TSURF"]

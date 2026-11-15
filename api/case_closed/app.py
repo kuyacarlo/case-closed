@@ -11,11 +11,12 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from .grid import snap
+from .area_cases import NoAreaData, UnknownArea, load_area_series
 from .grid_cases import OutsideGrid, load_grid_series
 from .power import CacheMiss, MonthlyPoint, MonthlySeries, get_series
 from .static_cases import OutsideStaticArea, load_static_series
 from .stats import analyze, monthly_anomalies
-from .variables import DEFAULT_VARIABLE, THEMES, get_variable, variable_list
+from .variables import DEFAULT_VARIABLE, SET_ASIDE, THEMES, get_variable, variable_list
 from .verdict import build_verdict
 
 # NASA POWER monthly data starts in 1981; 2025 is the last complete year
@@ -43,6 +44,7 @@ def variables() -> dict:
     return {
         "variables": variable_list(),
         "themes": THEMES,
+        "set_aside": SET_ASIDE,
         "first_year": FIRST_YEAR,
         "last_year": LAST_YEAR,
     }
@@ -50,8 +52,9 @@ def variables() -> dict:
 
 @app.get("/api/case")
 def case(
-    lat: float = Query(...),
-    lon: float = Query(...),
+    lat: float | None = Query(None),
+    lon: float | None = Query(None),
+    area: str | None = Query(None),
     variable: str = Query(DEFAULT_VARIABLE),
     start: int | None = Query(None),
     end: int = Query(LAST_YEAR),
@@ -63,6 +66,10 @@ def case(
 
     if start is None:
         start = var.first_year
+    if area is None and (lat is None or lon is None):
+        raise HTTPException(status_code=400, detail="Give a place (lat and lon) or an area.")
+    if area is not None and (lat is None or lon is None):
+        lat, lon = 0.0, 0.0
     if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
         raise HTTPException(
             status_code=400, detail="Latitude must be -90 to 90 and longitude -180 to 180."
@@ -84,8 +91,16 @@ def case(
     cell = snap(lat, lon)
 
     grid_warnings: list[str] = []
+    area_meta: dict | None = None
     try:
-        if var.grid_file:
+        if area is not None:
+            if var.static_file:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"{var.label} is only available for {var.static_place}, not as a region average.",
+                )
+            series, area_meta = load_area_series(var.code, area, start, end)
+        elif var.grid_file:
             series, grid_warnings = load_grid_series(
                 var.code, var.grid_file, lat, lon, start, end, scale=var.scale, offset=var.offset
             )
@@ -103,6 +118,12 @@ def case(
                     points=[MonthlyPoint(t=p.t, value=p.value * var.scale) for p in series.points],
                     from_cache=series.from_cache,
                 )
+    except UnknownArea:
+        raise HTTPException(status_code=400, detail=f"Unknown region {area!r}.")
+    except NoAreaData:
+        raise HTTPException(status_code=404, detail=f"{var.label} isn't averaged for this region.")
+    except HTTPException:
+        raise
     except OutsideGrid:
         raise HTTPException(
             status_code=404,
@@ -157,7 +178,8 @@ def case(
             "lat": lat,
             "lon": lon,
             # Static variables are point exports, not grid squares.
-            "cell": None if var.static_file else cell.as_dict(),
+            "cell": None if (var.static_file or area_meta) else cell.as_dict(),
+            "area": area_meta,
             "witness": var.witness,
             "start": series.points[0].t,
             "end": series.points[-1].t,
