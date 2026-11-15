@@ -48,38 +48,39 @@ export async function fetchCase(q: CaseQuery, signal?: AbortSignal): Promise<Cas
   return res.json();
 }
 
-/** Used until /api/variables answers; mirrors api/case_closed/variables.py. */
+/** Used until /api/variables answers (and if it fails); the API is the
+ * source of truth for the full catalogue in api/case_closed/variables.py. */
 export const DEFAULT_VARIABLES: VariableInfo[] = [
   {
     code: "T2M",
     label: "Air temperature",
-    units: "°C",
-    definition: "How warm the air is 2 meters above the ground.",
+    units: "\u00b0C",
+    definition: "How warm the air is 2 meters above the ground, averaged over the month.",
     source: "NASA POWER · MERRA-2 reanalysis (model-based)",
+    theme: "heat",
+    why_it_matters: "The most direct sign of a warming climate.",
+    digits: 2,
     static_place: null,
     first_year: 1981,
     first_year_note: null,
   },
-  {
-    code: "PRECTOTCORR",
-    label: "Rainfall",
-    units: "mm/day",
-    definition: "How much rain falls, averaged over each day of the month.",
-    source: "NASA POWER · MERRA-2 reanalysis, bias-corrected (model-based)",
-    static_place: null,
-    first_year: 2000,
-    first_year_note:
-      "Rainfall is analysed from 2000. Before then the record jumps by about 50% across the whole country in 1999, which points to a change in the data, not the weather.",
-  },
 ];
 
-export async function fetchVariables(): Promise<VariableInfo[]> {
+export const DEFAULT_THEMES: Record<string, string> = {
+  heat: "Heat",
+  water: "Rain & water",
+  land: "Land & farming",
+  sky: "Sun & sky",
+  air: "Air",
+};
+
+export async function fetchVariables(): Promise<{ variables: VariableInfo[]; themes: Record<string, string> }> {
   try {
     const res = await fetch(`${API_BASE}/api/variables`);
     if (!res.ok) throw new Error();
     const body = await res.json();
-    return body.variables as VariableInfo[];
+    return { variables: body.variables as VariableInfo[], themes: body.themes ?? DEFAULT_THEMES };
   } catch {
-    return DEFAULT_VARIABLES;
+    return { variables: DEFAULT_VARIABLES, themes: DEFAULT_THEMES };
   }
 }

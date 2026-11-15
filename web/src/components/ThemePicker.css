@@ -1,0 +1,83 @@
+.theme-picker {
+  display: grid;
+  gap: 12px;
+}
+.theme-chips {
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.theme-chips legend {
+  margin-bottom: 8px;
+  width: 100%;
+}
+.theme-chips label {
+  position: relative;
+  min-height: 38px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.theme-chips label.is-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.theme-chips input,
+.var-options input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+.theme-chips label:focus-within,
+.var-options label:focus-within {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.var-options {
+  border: 0;
+  display: grid;
+  gap: 6px;
+}
+.var-options label {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  cursor: pointer;
+}
+.var-options label.is-on {
+  border-color: var(--blue);
+  box-shadow: inset 3px 0 0 var(--blue);
+}
+.var-label {
+  font-weight: 600;
+}
+.var-why {
+  font-size: 13px;
+  color: var(--muted);
+}
+.all-vars summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--blue);
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+.all-vars select {
+  margin-top: 6px;
+}

@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from .grid import snap
+from .grid_cases import OutsideGrid, load_grid_series
 from .power import CacheMiss, MonthlyPoint, MonthlySeries, get_series
 from .static_cases import OutsideStaticArea, load_static_series
 from .stats import analyze, monthly_anomalies
@@ -82,8 +83,13 @@ def case(
 
     cell = snap(lat, lon)
 
+    grid_warnings: list[str] = []
     try:
-        if var.static_file:
+        if var.grid_file:
+            series, grid_warnings = load_grid_series(
+                var.code, var.grid_file, lat, lon, start, end, scale=var.scale, offset=var.offset
+            )
+        elif var.static_file:
             series = load_static_series(
                 var.code, var.static_file, lat, lon, start, end, scale=var.scale
             )
@@ -97,6 +103,11 @@ def case(
                     points=[MonthlyPoint(t=p.t, value=p.value * var.scale) for p in series.points],
                     from_cache=series.from_cache,
                 )
+    except OutsideGrid:
+        raise HTTPException(
+            status_code=404,
+            detail=f"{var.label} is only prepared for squares covering the Philippines.",
+        )
     except OutsideStaticArea:
         raise HTTPException(
             status_code=404,
@@ -117,6 +128,7 @@ def case(
     start_month = int(series.points[0].t[5:7])
     start_year = int(series.points[0].t[:4])
     trend, warnings = analyze(values, start_month=start_month, start_year=start_year)
+    warnings = grid_warnings + warnings
     if series.from_cache:
         warnings.append("Live data was unavailable, so this uses a saved copy from NASA POWER.")
 
@@ -144,8 +156,9 @@ def case(
             "source": var.source,
             "lat": lat,
             "lon": lon,
-            # Static variables are point exports, not POWER cells.
+            # Static variables are point exports, not grid squares.
             "cell": None if var.static_file else cell.as_dict(),
+            "witness": var.witness,
             "start": series.points[0].t,
             "end": series.points[-1].t,
             "n_months": series.n_months,

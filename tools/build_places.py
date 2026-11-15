@@ -34,9 +34,10 @@ sys.path.insert(0, str(ROOT / "api"))
 from case_closed.grid import DLAT, DLON, snap  # noqa: E402
 
 API = "https://www.geoboundaries.org/api/current/gbOpen/PHL/{level}/"
-# A cell counts as "PH land" when land covers at least this share of it, or a
-# city/municipality's representative point falls inside it.
-MIN_LAND_SHARE = 0.10
+# A cell counts as "PH land" when it touches any land at all (small islands
+# and coastlines included), or a city/municipality's point falls inside it.
+# Full-resolution ADM3 shapes are used for this test so small islands count.
+MIN_LAND_SHARE = 0.0
 
 
 def fetch_level(level: str) -> dict:
@@ -119,7 +120,7 @@ def main() -> None:
         town_cells.add(snap(pt.y, pt.x))
 
     # Land cells: every cell touched by enough land, plus every town's cell.
-    land = unary_union([g for _, g in regions])
+    land = unary_union([shape(f["geometry"]) for f in adm3["features"]])
     minx, miny, maxx, maxy = land.bounds
     cells = set(town_cells)
     lat = snap(miny, minx).lat
@@ -128,7 +129,7 @@ def main() -> None:
         lon = c0.lon
         while lon <= maxx + DLON:
             cell_box = box(lon - DLON / 2, lat - DLAT / 2, lon + DLON / 2, lat + DLAT / 2)
-            if land.intersection(cell_box).area >= MIN_LAND_SHARE * cell_box.area:
+            if land.intersection(cell_box).area > MIN_LAND_SHARE * cell_box.area:
                 cells.add(snap(lat, lon))
             lon += DLON
         lat += DLAT

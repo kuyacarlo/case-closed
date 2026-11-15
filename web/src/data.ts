@@ -13,11 +13,20 @@ export interface RawPlace {
   lon: number;
 }
 
-export interface OverviewVar {
+export type IslandGroup = "Luzon" | "Visayas" | "Mindanao";
+
+/** One square in a variable's overview layer (tools/build_ph_overview.py). */
+export interface LayerCell {
+  lat: number;
+  lon: number;
+  g: IslandGroup;
   sen: number;
   p: number;
   q: number;
   state: "confirmed" | "not_yet" | "too_short" | "step";
+  sig: boolean;
+  dir: "rising" | "falling" | "flat";
+  total: number;
   text: string;
   cp: number | null;
   mean: number;
@@ -25,54 +34,81 @@ export interface OverviewVar {
   annual: number[];
 }
 
-export interface OverviewCell {
-  lat: number;
-  lon: number;
-  T2M: OverviewVar;
-  PRECTOTCORR: OverviewVar;
+export interface Layer {
+  code: string;
+  window: [number, number];
+  cells: LayerCell[];
 }
 
-export interface OverviewSummary {
-  cells: number;
-  clear: number;
-  clear_after_correction: number;
+export interface GroupCounts {
+  rising: number;
+  falling: number;
+  not_sig: number;
+}
+
+export interface VarSummary {
+  window: [number, number];
+  squares: number;
+  significant: number;
+  significant_after_correction: number;
+  rising: number;
+  falling: number;
   step: number;
   median_sen: number;
+  by_group: Record<IslandGroup, GroupCounts>;
+  data_break: { year: number; squares: number; share: number } | null;
 }
 
-export interface Overview {
+export interface OverviewIndex {
   built: string;
   source: string;
-  window: Record<string, [number, number]>;
-  summary: {
-    T2M: OverviewSummary;
-    PRECTOTCORR: OverviewSummary;
-    rain_national_annual: { first_year: number; values: number[] };
-  };
-  cells: OverviewCell[];
+  last_year: number;
+  vars: Record<string, VarSummary>;
+  rain_national_annual: { first_year: number; values: number[] };
 }
 
-export type OverviewCode = "T2M" | "PRECTOTCORR";
+/** cells.json: per square, every variable as [sen, significant, dir, state]. */
+export interface CellsSummary {
+  codes: string[];
+  cells: { lat: number; lon: number; v: Record<string, [number, 0 | 1, "rising" | "falling" | "flat", string]> }[];
+}
 
 let placesPromise: Promise<RawPlace[]> | null = null;
-let overviewPromise: Promise<Overview> | null = null;
+let indexPromise: Promise<OverviewIndex> | null = null;
+let cellsPromise: Promise<CellsSummary> | null = null;
+const layerPromises = new Map<string, Promise<Layer>>();
+
+function getJson<T>(url: string): Promise<T> {
+  return fetch(url).then((r) => {
+    if (!r.ok) throw new Error(url);
+    return r.json() as Promise<T>;
+  });
+}
 
 export function loadPlaces(): Promise<RawPlace[]> {
-  placesPromise ??= fetch("/data/ph_places.json")
-    .then((r) => {
-      if (!r.ok) throw new Error("places");
-      return r.json();
-    })
-    .then((b) => b.places as RawPlace[]);
+  placesPromise ??= getJson<{ places: RawPlace[] }>("/data/ph_places.json").then((b) => b.places);
   return placesPromise;
 }
 
-export function loadOverview(): Promise<Overview> {
-  overviewPromise ??= fetch("/data/ph_overview.json").then((r) => {
-    if (!r.ok) throw new Error("overview");
-    return r.json();
-  });
-  return overviewPromise;
+export function loadIndex(): Promise<OverviewIndex> {
+  indexPromise ??= getJson<OverviewIndex>("/data/overview/index.json");
+  return indexPromise;
+}
+
+export function loadCellsSummary(): Promise<CellsSummary> {
+  cellsPromise ??= getJson<CellsSummary>("/data/overview/cells.json");
+  return cellsPromise;
+}
+
+/** One variable's map layer, fetched on demand and cached. */
+export function loadLayer(code: string): Promise<Layer> {
+  let p = layerPromises.get(code);
+  if (!p) {
+    p = getJson<Layer>(`/data/overview/${code}.json`);
+    p.catch(() => layerPromises.delete(code));
+    layerPromises.set(code, p);
+  }
+  return p;
 }
 
 /** Lower-case, strip accents and punctuation: "Las Piñas" -> "las pinas". */
@@ -143,13 +179,51 @@ export function nearestTown(all: RawPlace[], lat: number, lon: number): RawPlace
   return best;
 }
 
-export function overviewCell(ov: Overview, c: CellCentre): OverviewCell | undefined {
+export function layerCell(layer: Layer, c: CellCentre): LayerCell | undefined {
   const key = cellKey(c);
-  return ov.cells.find((x) => cellKey(x) === key);
+  return layer.cells.find((x) => cellKey(x) === key);
 }
 
-/** Share of PH land cells with a smaller slope than this one (0-100). */
-export function slopePercentile(ov: Overview, code: OverviewCode, sen: number): number {
-  const below = ov.cells.filter((c) => c[code].sen < sen).length;
-  return Math.round((below / ov.cells.length) * 100);
+/** Share of PH land squares changing more slowly (smaller |rate|) than this one. */
+export function slopePercentile(layer: Layer, sen: number): number {
+  const below = layer.cells.filter((c) => Math.abs(c.sen) < Math.abs(sen)).length;
+  return Math.round((below / layer.cells.length) * 100);
+}
+
+export interface ChangingRow {
+  code: string;
+  sen: number;
+  significant: boolean;
+  dir: "rising" | "falling" | "flat";
+  state: string;
+}
+
+/** Every variable for one square, significant first, then by how unusual the
+ * rate is nationally (|rate| relative to that variable's median |rate|). */
+export function changingHere(summary: CellsSummary, c: CellCentre): ChangingRow[] {
+  const key = cellKey(c);
+  const cell = summary.cells.find((x) => cellKey(x) === key);
+  if (!cell) return [];
+  const typical: Record<string, number> = {};
+  for (const code of summary.codes) {
+    const vals = summary.cells
+      .map((x) => x.v[code]?.[0])
+      .filter((v): v is number => v != null)
+      .map(Math.abs)
+      .sort((a, b) => a - b);
+    typical[code] = vals[Math.floor(vals.length / 2)] || 1;
+  }
+  return Object.entries(cell.v)
+    .map(([code, [sen, sig, d, state]]) => ({
+      code,
+      sen,
+      significant: sig === 1,
+      dir: d,
+      state,
+    }))
+    .sort(
+      (a, b) =>
+        Number(b.significant) - Number(a.significant) ||
+        Math.abs(b.sen) / typical[b.code] - Math.abs(a.sen) / typical[a.code],
+    );
 }

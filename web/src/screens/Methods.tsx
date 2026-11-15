@@ -1,16 +1,18 @@
 import { useEffect } from "react";
-import type { Overview } from "../data";
+import type { OverviewIndex } from "../data";
+import type { VariableInfo } from "../types";
 import "./Screens.css";
 
 interface MethodsProps {
-  overview: Overview | null;
+  index: OverviewIndex | null;
+  variables: VariableInfo[];
   anchor?: string;
   onBack: () => void;
 }
 
 /** National mean rainfall by year, with the 1999 break marked. */
-function RainBreakChart({ overview }: { overview: Overview }) {
-  const { first_year, values } = overview.summary.rain_national_annual;
+function RainBreakChart({ index }: { index: OverviewIndex }) {
+  const { first_year, values } = index.rain_national_annual;
   const W = 720;
   const H = 220;
   const L = 36;
@@ -58,14 +60,14 @@ function RainBreakChart({ overview }: { overview: Overview }) {
         ))}
       </svg>
       <figcaption>
-        Average rainfall across all {overview.cells.length} Philippine land squares (mm/day,
+        Average rainfall across all {index.vars.PRECTOTCORR?.squares ?? ""} Philippine land squares (mm/day,
         yearly). Before 1999: about {before.toFixed(1)}. From 1999: about {after.toFixed(1)}.
       </figcaption>
     </figure>
   );
 }
 
-export function Methods({ overview, anchor, onBack }: MethodsProps) {
+export function Methods({ index, variables, anchor, onBack }: MethodsProps) {
   useEffect(() => {
     if (anchor) document.getElementById(anchor)?.scrollIntoView();
   }, [anchor]);
@@ -82,54 +84,52 @@ export function Methods({ overview, anchor, onBack }: MethodsProps) {
 
       <section className="stack-sm">
         <h2>The data</h2>
+        <p>
+          Every variable, where it comes from, and the years we analyse. Click a definition
+          to remember what a variable means.
+        </p>
         <div className="table-scroll">
           <table className="methods-table">
             <thead>
               <tr>
-                <th scope="col">Topic</th>
-                <th scope="col">Dataset</th>
-                <th scope="col">Made by</th>
-                <th scope="col">Type</th>
-                <th scope="col">Area per value</th>
+                <th scope="col">Variable</th>
+                <th scope="col">What it means</th>
+                <th scope="col">Source</th>
                 <th scope="col">Years used</th>
+                <th scope="col">Squares with a significant trend</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>Air temperature</td>
-                <td>NASA POWER <code>T2M</code> (monthly)</td>
-                <td>NASA, from the MERRA-2 reanalysis</td>
-                <td>Model-based reanalysis</td>
-                <td>0.5° × 0.625° square, about 55 × 67 km</td>
-                <td>1981–2025</td>
-              </tr>
-              <tr>
-                <td>Rainfall</td>
-                <td>NASA POWER <code>PRECTOTCORR</code> (monthly)</td>
-                <td>NASA, from MERRA-2, bias-corrected</td>
-                <td>Model-based reanalysis</td>
-                <td>Same squares</td>
-                <td>2000–2025 (see below)</td>
-              </tr>
-              <tr>
-                <td>Nitrogen dioxide</td>
-                <td>Sentinel-5P TROPOMI tropospheric NO₂ (offline L3)</td>
-                <td>ESA / Copernicus, via Google Earth Engine</td>
-                <td>Satellite measurement</td>
-                <td>Point over Metro Manila only</td>
-                <td>2018–2024</td>
-              </tr>
-              <tr>
-                <td>Places</td>
-                <td>geoBoundaries PHL, regions to municipalities</td>
-                <td>NAMRIA, PSA, OCHA Philippines (CC BY 3.0 IGO)</td>
-                <td>Boundaries (2020)</td>
-                <td>17 regions, 87 provinces, 1,647 cities and towns</td>
-                <td>–</td>
-              </tr>
+              {variables.map((v) => {
+                const s = index?.vars[v.code];
+                return (
+                  <tr key={v.code}>
+                    <td>
+                      <strong>{v.label}</strong>
+                      <br />
+                      <code>{v.code}</code> · {v.units}
+                    </td>
+                    <td>{v.definition}</td>
+                    <td>{v.source}</td>
+                    <td className="num">
+                      {s ? `${s.window[0]}–${s.window[1]}` : v.static_place ? "2018–2024" : `${v.first_year}–2025`}
+                      {v.first_year_note && <span className="muted small"> · {v.first_year_note}</span>}
+                    </td>
+                    <td className="num">
+                      {s
+                        ? `${s.significant} of ${s.squares} (▲${s.rising} ▼${s.falling}); ${s.significant_after_correction} after correction`
+                        : `${v.static_place} only`}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+        <p className="muted small">
+          Places: geoBoundaries PHL (NAMRIA, PSA, OCHA Philippines; CC BY 3.0 IGO), 17
+          regions, 87 provinces, 1,647 cities and municipalities.
+        </p>
       </section>
 
       <section className="stack-sm">
@@ -151,8 +151,10 @@ export function Methods({ overview, anchor, onBack }: MethodsProps) {
           <li><strong>Measure the trend.</strong> Sen’s slope: the middle of all the slopes between pairs of months, so a few extreme months can’t drag it.</li>
           <li><strong>Test it honestly.</strong> Mann-Kendall test with the Hamed-Rao correction, because neighbouring months are alike and would otherwise overstate the evidence.</li>
           <li><strong>Check for a jump.</strong> Pettitt test on yearly averages. If the record is level after the biggest shift, we say “mostly a jump”.</li>
-          <li><strong>Refuse short records.</strong> Under 20 years we don’t call a trend at all.</li>
-          <li><strong>Across the map,</strong> we test about 180 squares at once, so we also report how many trends survive a Benjamini-Hochberg correction for multiple testing.</li>
+          <li><strong>Always report the trend.</strong> Direction and size are shown even when the trend isn’t significant; a longer record might make it so.</li>
+          <li><strong>Refuse short records.</strong> Under 20 years we don’t call a trend significant at all.</li>
+          <li><strong>Significant</strong> means the honest p-value is below 0.05: a trend this strong would turn up by chance less than 5 times in 100.</li>
+          <li><strong>Across the map,</strong> we test about 220 squares at once, so we also report how many trends survive a Benjamini-Hochberg correction for multiple testing.</li>
         </ol>
         <p className="muted small">
           References: Sen (1968); Mann (1945); Kendall (1975); Hamed &amp; Rao (1998);
@@ -161,16 +163,40 @@ export function Methods({ overview, anchor, onBack }: MethodsProps) {
       </section>
 
       <section className="stack-sm" id="rain-break">
-        <h2>The faulty witness: rainfall before 2000</h2>
+        <h2>The faulty witness: a 1999 break in the data</h2>
         <p>
-          When we ran every square in the Philippines, the rainfall record jumped by about
-          half in 1999 almost everywhere at once, then stayed high. Real climate doesn’t
-          switch a whole country’s rainfall in one year and hold it there for 25 years.
-          That pattern points to a change in how the dataset was put together. So for
-          rainfall we only use 2000 onwards, after the break. Checking it against rain
-          gauges or NASA’s GPM IMERG satellite rainfall is the next step.
+          When we ran every square in the Philippines, rainfall jumped by about half in 1999
+          almost everywhere at once, then stayed high. Real climate doesn’t switch a whole
+          country’s rainfall in one year and hold it there for 25 years. That points to a
+          change in how the dataset was put together.
         </p>
-        {overview && <RainBreakChart overview={overview} />}
+        <p>
+          So we built a <strong>data-break detector</strong>: for each variable it checks
+          whether many squares jump in the same year. It found the same 1999 break on its
+          own in:
+        </p>
+        <ul className="method-steps">
+          {index &&
+            Object.entries(index.vars)
+              .filter(([, s]) => s.data_break)
+              .map(([code, s]) => {
+                const v = variables.find((x) => x.code === code);
+                return (
+                  <li key={code}>
+                    <strong>{v?.label ?? code}</strong>: {s.data_break!.squares} squares (
+                    {Math.round(s.data_break!.share * 100)}%) jump around {s.data_break!.year}.
+                    Now analysed from {s.window[0]}.
+                  </li>
+                );
+              })}
+        </ul>
+        <p>
+          Humidity jumps in the same year, so it starts in 2000 too. Sunlight and cloud start
+          in 2001, because NASA POWER joins an older satellite product (GEWEX SRB) to CERES
+          around then. Checking against rain gauges or NASA’s GPM IMERG satellite rainfall
+          is the next step.
+        </p>
+        {index && <RainBreakChart index={index} />}
       </section>
 
       <section className="stack-sm">

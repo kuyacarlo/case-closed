@@ -43,6 +43,13 @@ class Variable:
     why_it_matters: str = ""
     # Static variables are served from a bundled JSON file instead of POWER.
     static_file: str | None = None
+    # Gridded NASA variables precomputed for every PH square from Giovanni
+    # (tools/fetch_giovanni.py -> tools/build_nasa_grids.py -> data/nasa/).
+    grid_file: str | None = None
+    # Added after scaling (e.g. -273.15 to turn kelvin into degrees C).
+    offset: float = 0.0
+    # Code of a variable measuring the same thing another way (a "second witness").
+    witness: str | None = None
     # Multiply raw values by this for display (e.g. mol/m^2 -> umol/m^2).
     scale: float = 1.0
     # Plain place name for a static variable's only location (used in errors).
@@ -68,6 +75,7 @@ VARIABLES: dict[str, Variable] = {
         why_it_matters="The most direct sign of a warming climate.",
         up_word="Getting warmer",
         down_word="Getting cooler",
+        witness="AIRS_TSURF",
     ),
     "T2M_MAX": Variable(
         code="T2M_MAX",
@@ -110,6 +118,7 @@ VARIABLES: dict[str, Variable] = {
             "Rainfall is analysed from 2000. In 1999 the record jumps by about 50% across "
             "the whole country at once, which points to a change in the data, not the weather."
         ),
+        witness="IMERG",
     ),
     "EVLAND": Variable(
         code="EVLAND",
@@ -123,6 +132,7 @@ VARIABLES: dict[str, Variable] = {
         down_word="Less evaporation",
         first_year=2000,
         first_year_note=MOISTURE_NOTE.format(label="Evaporation"),
+        witness="GLDAS_EVAP",
     ),
     "GWETROOT": Variable(
         code="GWETROOT",
@@ -138,6 +148,7 @@ VARIABLES: dict[str, Variable] = {
         digits=1,
         first_year=2000,
         first_year_note=MOISTURE_NOTE.format(label="Soil moisture"),
+        witness="GLDAS_ROOTMOIST",
     ),
     "RH2M": Variable(
         code="RH2M",
@@ -203,11 +214,107 @@ VARIABLES: dict[str, Variable] = {
         scale=1e6,  # mol/m^2 -> umol/m^2
         static_place="Metro Manila",
         digits=1,
+        witness="OMI_NO2",
     ),
+    # ---- Datasets from the challenge's NASA resource list, via Giovanni ----
+    "IMERG": Variable(
+        code="IMERG",
+        label="Rainfall (GPM satellite)",
+        units="mm/day",
+        definition="Rain measured from space by NASA's GPM satellites and checked against rain gauges, averaged per day.",
+        source="NASA GPM IMERG V07 monthly (satellites + rain gauges), via Giovanni",
+        theme="water",
+        why_it_matters="A second, independent witness for rainfall, measured rather than modelled.",
+        grid_file="IMERG.json",
+        scale=24.0,  # mm/hr -> mm/day
+        up_word="Getting wetter",
+        down_word="Getting drier",
+        first_year=2001,
+        witness="PRECTOTCORR",
+    ),
+    "GLDAS_EVAP": Variable(
+        code="GLDAS_EVAP",
+        label="Evaporation (GLDAS)",
+        units="mm/day",
+        definition="Water rising from soil and plants into the air each day, from NASA's land data system.",
+        source="NASA GLDAS Noah 2.1 monthly (land model fed by satellite data), via Giovanni",
+        theme="water",
+        why_it_matters="A second witness for evaporation, from a different NASA model.",
+        grid_file="GLDAS_EVAP.json",
+        scale=86400.0,  # kg m-2 s-1 -> mm/day
+        up_word="More evaporation",
+        down_word="Less evaporation",
+        first_year=2000,
+        witness="EVLAND",
+    ),
+    "GLDAS_ROOTMOIST": Variable(
+        code="GLDAS_ROOTMOIST",
+        label="Soil water in the root zone (GLDAS)",
+        units="mm",
+        definition="How much water is held in the top metre of soil, as a depth of water.",
+        source="NASA GLDAS Noah 2.1 monthly (land model fed by satellite data), via Giovanni",
+        theme="land",
+        why_it_matters="What crops can actually draw on; falling soil water is an early drought sign.",
+        grid_file="GLDAS_ROOTMOIST.json",
+        up_word="Soil getting wetter",
+        down_word="Soil getting drier",
+        digits=1,
+        first_year=2000,
+        witness="GWETROOT",
+    ),
+    "GLDAS_RUNOFF": Variable(
+        code="GLDAS_RUNOFF",
+        label="Surface runoff (GLDAS)",
+        units="mm/day",
+        definition="Rainwater that flows off the land surface into streams and rivers instead of soaking in.",
+        source="NASA GLDAS Noah 2.1 monthly (land model fed by satellite data), via Giovanni",
+        theme="water",
+        why_it_matters="Feeds rivers and floods; the closest thing here to streamflow.",
+        grid_file="GLDAS_RUNOFF.json",
+        scale=8.0,  # monthly mean of 3-hourly accumulations (kg m-2) -> mm/day
+        up_word="More runoff",
+        down_word="Less runoff",
+        digits=3,
+        first_year=2000,
+    ),
+    "OMI_NO2": Variable(
+        code="OMI_NO2",
+        label="Nitrogen dioxide (OMI satellite)",
+        units="\u00b5mol/m\u00b2",
+        definition="Nitrogen dioxide in the lower air, measured from space by NASA's Aura satellite. A marker of traffic, industry and burning.",
+        source="NASA Aura OMI OMNO2d v003, cloud-screened tropospheric column, daily averaged to monthly, via Giovanni",
+        theme="air",
+        why_it_matters="A pollutant that harms lungs; 20 years of NASA satellite data.",
+        grid_file="OMI_NO2.json",
+        scale=1e4 / 6.02214076e23 * 1e6,  # molecules/cm2 -> umol/m2
+        up_word="More NO\u2082",
+        down_word="Less NO\u2082",
+        digits=1,
+        first_year=2005,
+        witness="NO2",
+    ),
+    "AIRS_TSURF": Variable(
+        code="AIRS_TSURF",
+        label="Daytime air temperature (AIRS satellite)",
+        units="\u00b0C",
+        definition="Air temperature near the surface measured by NASA's AIRS instrument as its satellite passes over at about 1:30 pm.",
+        source="NASA Aqua AIRS AIRS3STM v7, daytime overpass, via Giovanni",
+        theme="heat",
+        why_it_matters="A satellite witness for warming, independent of the MERRA-2 model.",
+        grid_file="AIRS_TSURF.json",
+        offset=-273.15,  # K -> C
+        up_word="Getting warmer",
+        down_word="Getting cooler",
+        first_year=2003,
+        witness="T2M",
+    ),
+
 }
 
 # Variables computed for every PH square (the national overview).
 OVERVIEW_CODES = [c for c, v in VARIABLES.items() if not v.static_file]
+# Of those, the ones fetched live from NASA POWER.
+POWER_CODES = [c for c, v in VARIABLES.items() if not v.static_file and not v.grid_file]
 
 THEMES = {
     "heat": "Heat",

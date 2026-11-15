@@ -1,39 +1,47 @@
 import { useEffect, useRef } from "react";
 import { AnswerCard } from "../components/AnswerCard";
+import { ChangingHere } from "../components/ChangingHere";
 import { MapLegend } from "../components/MapLegend";
 import { PhMap } from "../components/PhMap";
 import { PlaceSearch } from "../components/PlaceSearch";
-import type { Overview, OverviewCell, OverviewCode, RawPlace } from "../data";
+import { ThemePicker } from "../components/ThemePicker";
+import { scaleMax } from "../components/colour";
+import type { Layer, LayerCell, RawPlace, VarSummary } from "../data";
 import type { CellCentre } from "../grid";
-import type { Place, VariableInfo } from "../types";
+import type { Place, Theme, VariableInfo } from "../types";
 import "./Screens.css";
+
+export type DemoId = "manila" | "not-yet";
 
 interface ExploreProps {
   variables: VariableInfo[];
-  code: OverviewCode;
-  onCode: (code: OverviewCode) => void;
-  overview: Overview | null;
-  overviewFailed: boolean;
+  themes: Record<string, string>;
+  theme: Theme;
+  code: string;
+  onTheme: (t: Theme) => void;
+  onCode: (code: string) => void;
+  layer: Layer | null;
+  summary: VarSummary | undefined;
+  layerFailed: boolean;
   place: Place | null;
   cell: CellCentre | null;
-  overviewCell: OverviewCell | undefined;
+  layerCell: LayerCell | undefined;
   towns: RawPlace[];
+  significantOnly: boolean;
+  onSignificantOnly: (on: boolean) => void;
   onPlace: (place: Place) => void;
   onMapPick: (lat: number, lon: number) => void;
   onEvidence: () => void;
-  onFeatured: (id: "manila-heat" | "manila-no2") => void;
+  onFeatured: (id: "manila-no2") => void;
+  onDemo: (id: DemoId) => void;
   onMethods: (anchor?: string) => void;
 }
 
-const TOGGLE: { code: OverviewCode; label: string }[] = [
-  { code: "T2M", label: "Temperature" },
-  { code: "PRECTOTCORR", label: "Rainfall" },
-];
-
 export function Explore(props: ExploreProps) {
-  const { variables, code, onCode, overview, overviewFailed, place, cell, overviewCell, towns } = props;
+  const { variables, code, layer, place, cell, layerCell, towns } = props;
   const cardRef = useRef<HTMLDivElement>(null);
-  const units = variables.find((v) => v.code === code)?.units ?? "";
+  const info = variables.find((v) => v.code === code) ?? variables[0];
+  const max = layer ? scaleMax(layer) : 1;
 
   // After a map tap on a phone, bring the answer into view.
   useEffect(() => {
@@ -46,53 +54,60 @@ export function Explore(props: ExploreProps) {
     <div className="container stack-lg">
       <section className="hero hero-compact stack-sm">
         <p className="eyebrow">Earth System Trend Detective · Philippines</p>
-        <h1 className="h1-explore">Is the climate where you live changing?</h1>
+        <h1 className="h1-explore">What’s changing where you live?</h1>
         <p className="lead">
-          Search your town or tap the map. You get a plain answer from decades of NASA
-          data, and the evidence behind it.
+          Pick something to investigate and a place. We test decades of NASA data and tell
+          you if there’s a trend, how big it is, and whether it’s significant.
         </p>
+        <div className="hero-actions">
+          <button className="btn btn-outline demo-btn" onClick={() => props.onDemo("manila")}>
+            ▶ Watch a 1-minute demo
+          </button>
+        </div>
       </section>
 
       <div className="explore-grid">
         <div className="explore-panel stack-md">
-          <PlaceSearch onPick={props.onPlace} />
+          <ThemePicker
+            variables={variables}
+            themes={props.themes}
+            theme={props.theme}
+            code={code}
+            onTheme={props.onTheme}
+            onCode={props.onCode}
+          />
+          {info && <p className="definition-box small">{info.definition}</p>}
 
-          <fieldset className="toggle" aria-label="What to check">
-            {TOGGLE.map((t) => (
-              <label key={t.code} className={code === t.code ? "is-on" : undefined}>
-                <input
-                  type="radio"
-                  name="topic"
-                  value={t.code}
-                  checked={code === t.code}
-                  onChange={() => onCode(t.code)}
+          <div className="where-step">
+            <p className="field">2 · Where?</p>
+            <PlaceSearch onPick={props.onPlace} />
+          </div>
+
+          <div ref={cardRef} className="stack-md">
+            <p className="field">3 · The answer</p>
+            {place && layer && info ? (
+              <>
+                <AnswerCard
+                  place={place}
+                  cell={layerCell}
+                  layer={layer}
+                  info={info}
+                  towns={towns}
+                  onEvidence={props.onEvidence}
                 />
-                {t.label}
-              </label>
-            ))}
-          </fieldset>
-
-          <div ref={cardRef}>
-            {place && overview ? (
-              <AnswerCard
-                place={place}
-                cell={overviewCell}
-                overview={overview}
-                code={code}
-                variables={variables}
-                towns={towns}
-                onEvidence={props.onEvidence}
-                onSwitch={onCode}
-              />
+                {cell && (
+                  <ChangingHere cell={cell} variables={variables} current={code} onPick={props.onCode} />
+                )}
+              </>
             ) : (
               <div className="card explore-empty">
-                <h2>Start with a place</h2>
+                <h2>Pick a place</h2>
                 <p>
-                  Every coloured square on the map is one NASA data square, about 55 km
-                  across. Its colour shows how fast {code === "T2M" ? "temperature" : "rainfall"}{" "}
-                  has been changing there.
+                  Search above or tap a square on the map. Each square is one NASA data
+                  square, about 55 km across. Its colour shows which way{" "}
+                  {info?.label.toLowerCase()} has been changing there, and how fast.
                 </p>
-                {overviewFailed && (
+                {props.layerFailed && (
                   <p className="inline-error">
                     The map data didn’t load. Search still works; refresh to try the map again.
                   </p>
@@ -104,13 +119,24 @@ export function Explore(props: ExploreProps) {
 
         <div className="explore-map stack-sm">
           <PhMap
-            overview={overview}
-            code={code}
+            layer={layer}
+            theme={info?.theme ?? "heat"}
+            max={max}
+            significantOnly={props.significantOnly}
             selected={cell}
             onPick={props.onMapPick}
             label="Map of the Philippines. Tap a square to see its answer, or use the search box."
           />
-          {overview && <MapLegend overview={overview} code={code} units={units} />}
+          {layer && info && (
+            <MapLegend
+              layer={layer}
+              summary={props.summary}
+              info={info}
+              max={max}
+              significantOnly={props.significantOnly}
+              onSignificantOnly={props.onSignificantOnly}
+            />
+          )}
         </div>
       </div>
 
@@ -118,19 +144,33 @@ export function Explore(props: ExploreProps) {
         <h2>Featured cases</h2>
         <div className="card-row">
           <article className="card stack-sm">
-            <p className="eyebrow">Case 01 · Temperature</p>
+            <p className="eyebrow">Demo · A significant trend</p>
             <h3 className="case-title">Is Metro Manila getting hotter?</h3>
-            <p className="case-detail">45 years of NASA POWER data, 1981 to 2025.</p>
-            <button className="btn btn-primary" onClick={() => props.onFeatured("manila-heat")}>
-              Open case
+            <p className="case-detail">
+              Follow a full investigation: the raw data, removing the seasons, the trend,
+              and the honest significance test.
+            </p>
+            <button className="btn btn-primary" onClick={() => props.onDemo("manila")}>
+              ▶ Watch the demo
             </button>
           </article>
           <article className="card stack-sm">
-            <p className="eyebrow">Case 02 · A faulty witness</p>
-            <h3 className="case-title">Why rainfall starts in 2000</h3>
+            <p className="eyebrow">Demo · Not significant yet</p>
+            <h3 className="case-title">A trend that needs more years</h3>
             <p className="case-detail">
-              In 1999 the rainfall record jumps about 50% across the whole country at
-              once. We caught it, and here’s why we don’t trust it.
+              Tuguegarao’s average temperature rises a little, but not significantly. See
+              why, and what is changing clearly there.
+            </p>
+            <button className="btn btn-outline" onClick={() => props.onDemo("not-yet")}>
+              ▶ Watch the demo
+            </button>
+          </article>
+          <article className="card stack-sm">
+            <p className="eyebrow">Case · A faulty witness</p>
+            <h3 className="case-title">The 1999 data break</h3>
+            <p className="case-detail">
+              Rainfall, evaporation and soil moisture all jump in 1999 across the whole
+              country at once. Our break detector caught it.
             </p>
             <button className="btn btn-outline" onClick={() => props.onMethods("rain-break")}>
               Read the case file
@@ -138,7 +178,7 @@ export function Explore(props: ExploreProps) {
           </article>
           <article className="card stack-sm">
             <p className="eyebrow">
-              Case 03 · Air quality <span className="chip-short">Short record</span>
+              Case · Air quality <span className="chip-short">Short record</span>
             </p>
             <h3 className="case-title">Did Manila’s air get cleaner?</h3>
             <p className="case-detail">
@@ -153,8 +193,8 @@ export function Explore(props: ExploreProps) {
       </section>
 
       <footer className="section footer-note">
-        Temperature and rainfall: NASA POWER, MERRA-2 reanalysis (model-based). NO₂:
-        Sentinel-5P TROPOMI (ESA/Copernicus). Boundaries: geoBoundaries (CC BY 3.0 IGO).{" "}
+        Data: NASA POWER (MERRA-2 reanalysis; CERES SYN1deg for sunlight and cloud).
+        NO₂: Sentinel-5P TROPOMI (ESA/Copernicus). Boundaries: geoBoundaries (CC BY 3.0 IGO).{" "}
         <button className="link-btn" onClick={() => props.onMethods()}>
           How it works
         </button>

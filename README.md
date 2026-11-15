@@ -72,23 +72,40 @@ on the "How sure are we?" panel.
 
 ## Data sources
 
-- **NASA POWER:** monthly point queries, no login. Temperature (`T2M`) and
-  rainfall (`PRECTOTCORR`) come from the MERRA-2 reanalysis, so they are
-  labelled **model-based** in the UI.
-- **Rainfall starts in 2000.** Across all 180 PH squares the POWER rainfall
-  record jumps by about 50% in 1999 at once (national mean ~4.5 → ~6.9 mm/day)
-  and stays there. That points to a change in the data, not the weather, so
-  rainfall is analysed from 2000 (the API refuses earlier start years, with a
-  reason). Cross-checking against GPM IMERG or PAGASA gauges is the next step.
-- **Sentinel-5P TROPOMI (ESA/Copernicus):** tropospheric NO₂ for Metro Manila,
-  exported offline from Google Earth Engine (`tools/gee/export_no2.py`). The API
-  refuses NO₂ for any other place.
-- **geoBoundaries PHL** (CC BY 3.0 IGO; NAMRIA, PSA, OCHA Philippines): place
-  names and province outlines.
+Two families, both NASA:
+
+**From the challenge's NASA resource list, via [Giovanni](https://giovanni.gsfc.nasa.gov/)**
+(downloaded once per square by `tools/fetch_giovanni.py`; needs a free Earthdata
+Login token in the git-ignored `api/.env`; the deployed app never calls Giovanni):
+
+| Variable | Dataset | Years |
+| --- | --- | --- |
+| Rainfall (satellite) | GPM IMERG V07 monthly | 2001–2025 |
+| Evaporation | GLDAS Noah 2.1 monthly | 2000–2025 |
+| Root-zone soil water | GLDAS Noah 2.1 monthly | 2000–2025 |
+| Surface runoff | GLDAS Noah 2.1 monthly | 2000–2025 |
+| Nitrogen dioxide | Aura OMI OMNO2d v003 (daily → monthly) | 2005–2025 |
+| Daytime air temperature | Aqua AIRS AIRS3STM v7 | 2003–2025 |
+
+**From [NASA POWER](https://power.larc.nasa.gov/)** (monthly point API, no login):
+MERRA-2 reanalysis temperature (average, monthly hottest and coolest), rainfall,
+evaporation, root-zone soil wetness, humidity and wind; CERES SYN1deg sunlight
+and cloud. These are labelled **model-based** (MERRA-2) in the UI.
+
+Where two sources measure the same thing (e.g. MERRA-2 vs GPM rainfall, MERRA-2
+vs AIRS temperature), the Evidence page calls the second one as a **witness**.
+
+**Data-break detector.** Across all PH squares the MERRA-2 moisture record
+(rainfall, evaporation, soil moisture; humidity jumps too) shifts in 1999 at
+once, the signature of a change in the data rather than the weather. The
+overview builder flags this automatically; those variables are analysed from
+2000. Sunlight and cloud start in 2001 because POWER joins GEWEX SRB to CERES.
+
+Also: Sentinel-5P TROPOMI (ESA/Copernicus) NO₂ for Metro Manila only; place
+names and outlines from geoBoundaries PHL (CC BY 3.0 IGO; NAMRIA, PSA, OCHA).
 
 No silent fallbacks: if a live call fails, the app shows an error, never another
-place's data. The on-disk cache is only used when it covers the whole requested
-window, and the response says so.
+place's data.
 
 ## Architecture
 
@@ -109,8 +126,10 @@ Rebuild the static data (raw downloads cache in git-ignored `tools/.cache/`):
 
 ```
 cd api
-uv run --with shapely python ../tools/build_places.py
-uv run python ../tools/build_ph_overview.py
+uv run --with shapely python ../tools/build_places.py   # places + 223 land squares
+uv run python ../tools/fetch_giovanni.py                 # NASA Giovanni (needs api/.env)
+uv run python ../tools/build_nasa_grids.py               # -> data/nasa/*.json
+uv run python ../tools/build_ph_overview.py              # -> web/public/data/overview/
 ```
 
 Deployed to **Vercel** (one project, FastAPI + SPA on the same origin) via

@@ -1,5 +1,6 @@
 import { AnomalyChart, DataTable, EvidenceChart } from "../components/Charts";
 import { PhMap } from "../components/PhMap";
+import { WitnessPanel, type Witness } from "../components/WitnessPanel";
 import { describeSeries, yearOf } from "../format";
 import { cellSizeKm } from "../grid";
 import type { CaseResponse } from "../types";
@@ -10,15 +11,19 @@ interface EvidenceProps {
   question: string;
   placeName: string;
   alsoCovers: string;
+  /** The case's own variable and its second witness, when both are mapped. */
+  witnesses: [Witness, Witness] | null;
   onCrossExamine: () => void;
 }
 
-export function Evidence({ data, question, placeName, alsoCovers, onCrossExamine }: EvidenceProps) {
+export function Evidence({ data, question, placeName, alsoCovers, witnesses, onCrossExamine }: EvidenceProps) {
   const { meta, series, trend } = data;
   const startYear = yearOf(meta.start);
   const endYear = yearOf(meta.end);
   const years = Number(endYear) - Number(startYear) + 1;
-  const zeroBased = meta.variable !== "T2M";
+  // Amounts (rain, evaporation, runoff, sunlight, NO2) keep 0 as the floor;
+  // temperatures, humidity and similar get an axis fitted to the data.
+  const zeroBased = ["PRECTOTCORR", "EVLAND", "ALLSKY_SFC_SW_DWN", "WS2M", "NO2"].includes(meta.variable);
   const size = meta.cell ? cellSizeKm(meta.cell.lat) : null;
 
   return (
@@ -65,8 +70,9 @@ export function Evidence({ data, question, placeName, alsoCovers, onCrossExamine
         </div>
         {meta.cell && (
           <PhMap
-            overview={null}
-            code="T2M"
+            layer={null}
+            theme="heat"
+            max={1}
             selected={{ lat: meta.cell.lat, lon: meta.cell.lon }}
             mini
             label={`Map showing the data square for ${placeName}`}
@@ -82,19 +88,20 @@ export function Evidence({ data, question, placeName, alsoCovers, onCrossExamine
         </div>
       )}
 
-      <section className="section stack-md">
+      <section className="section stack-md" id="exhibit-a">
         <h2>
           <span className="exhibit">Exhibit A</span> Collect the evidence
         </h2>
         <p className="lead">
           Every month of {meta.label.toLowerCase()} in this square, from {meta.source.split(" · ")[0]}.
-          The regular waves are the seasons.
+          The regular waves are the seasons.{" "}
+          <span className="muted">{meta.definition}</span>
         </p>
         <EvidenceChart series={series} units={meta.units} zeroBased={zeroBased} />
         <p className="chart-summary">{describeSeries(series, meta.units)}</p>
       </section>
 
-      <section className="section stack-md">
+      <section className="section stack-md" id="exhibit-b">
         <h2>
           <span className="exhibit">Exhibit B</span> Remove the seasons
         </h2>
@@ -116,6 +123,8 @@ export function Evidence({ data, question, placeName, alsoCovers, onCrossExamine
         </div>
         <DataTable series={series} units={meta.units} />
       </section>
+
+      {witnesses && <WitnessPanel main={witnesses[0]} second={witnesses[1]} />}
 
       <section className="section closing-row card">
         <p className="lead" style={{ margin: 0 }}>

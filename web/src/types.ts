@@ -17,6 +17,8 @@ export interface CaseMeta {
   lon: number;
   /** POWER grid cell the case covers; null for point exports (NO2). */
   cell: Cell | null;
+  /** Code of a variable that measures the same thing another way. */
+  witness: string | null;
   start: string; // YYYY-MM
   end: string; // YYYY-MM
   n_months: number;
@@ -55,8 +57,18 @@ export interface Trend {
 
 export type VerdictState = "confirmed" | "not_yet" | "too_short" | "step";
 
+export type Direction = "rising" | "falling" | "flat";
+
+/** Trend-first verdict: always says direction and size, then significance. */
 export interface Verdict {
   state: VerdictState;
+  direction: Direction;
+  rate_per_decade: number;
+  total_change: number;
+  years: number;
+  significant: boolean;
+  p: number;
+  headline: string;
   text: string;
   detail: string;
 }
@@ -68,12 +80,17 @@ export interface CaseResponse {
   verdict: Verdict;
 }
 
+export type Theme = "heat" | "water" | "land" | "sky" | "air";
+
 export interface VariableInfo {
   code: string;
   label: string;
   units: string;
   definition: string;
   source: string;
+  theme: Theme;
+  why_it_matters: string;
+  digits: number;
   static_place: string | null;
   first_year: number;
   first_year_note: string | null;

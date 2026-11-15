@@ -23,16 +23,21 @@ interface VerdictProps {
 }
 
 const STAMP: Record<Verdict["state"], string> = {
-  confirmed: "Verdict: Clear trend",
-  step: "Verdict: Mostly a jump",
-  not_yet: "Verdict: No clear change",
-  too_short: "Verdict: Too short to call",
+  confirmed: "Verdict: Significant trend",
+  step: "Verdict: Mostly one jump",
+  not_yet: "Verdict: Trend not significant yet",
+  too_short: "Verdict: Too short to judge",
 };
+
+function signed(x: number, d: number): string {
+  return `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(d)}`;
+}
 
 export function VerdictScreen(props: VerdictProps) {
   const { data, startYear, minYear, maxYear, loading, fullVerdict } = props;
   const { meta, trend, verdict } = data;
   const units = meta.units;
+  const d = Math.abs(verdict.rate_per_decade) < 0.1 ? 3 : 2;
   const windowEnd = Number(yearOf(meta.end));
   const windowYears = windowEnd - startYear + 1;
   const exploratory = windowYears < MIN_YEARS_FOR_VERDICT;
@@ -67,11 +72,60 @@ export function VerdictScreen(props: VerdictProps) {
         <h1 className="h1-screen">{props.question}</h1>
       </section>
 
-      <section className={`verdict-block verdict-${verdict.state}`} aria-live="polite" aria-busy={loading}>
+      <section
+        className={`verdict-block case-summary verdict-${verdict.state}`}
+        aria-live="polite"
+        aria-busy={loading}
+      >
         <span className="verdict-stamp">{STAMP[verdict.state]}</span>
-        <p className="verdict-text">{verdict.text}</p>
-        <p className="verdict-detail">{verdict.detail}</p>
-        {props.nationalContext && verdict.state !== "too_short" && atFull && (
+        <p className="verdict-text">{verdict.headline}</p>
+        <dl className="summary-rows">
+          <div>
+            <dt>Is there a trend?</dt>
+            <dd>
+              {verdict.direction === "flat"
+                ? "Essentially flat"
+                : verdict.significant
+                  ? `Yes, ${verdict.direction}`
+                  : `A slight ${verdict.direction === "rising" ? "rise" : "fall"}`}
+            </dd>
+          </div>
+          <div>
+            <dt>How much?</dt>
+            <dd className="num">
+              {signed(verdict.rate_per_decade, d)} {units} per decade · about{" "}
+              {signed(verdict.total_change, d)} {units} over {Math.round(verdict.years)} years
+            </dd>
+          </div>
+          <div>
+            <dt>Is it significant?</dt>
+            <dd>
+              {verdict.state === "too_short"
+                ? "Too short to judge (under 20 years)"
+                : verdict.significant
+                  ? `Yes. p = ${formatP(verdict.p)}, below the 0.05 line`
+                  : `Not yet. p = ${formatP(verdict.p)}, above the 0.05 line`}
+              <span className="row-note">
+                Significant means a trend this strong would turn up by chance less than 5
+                times in 100, even after allowing for similar neighbouring months.
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>How sure?</dt>
+            <dd>
+              {verdict.detail}
+              <span className="row-note num">
+                95% range for the rate: {signed(trend.ols_slope_per_decade - trend.ci95, d)} to{" "}
+                {signed(trend.ols_slope_per_decade + trend.ci95, d)} {units}/decade
+                {trend.ols_slope_per_decade - trend.ci95 > 0 || trend.ols_slope_per_decade + trend.ci95 < 0
+                  ? " (doesn’t include zero)"
+                  : " (includes zero)"}
+              </span>
+            </dd>
+          </div>
+        </dl>
+        {props.nationalContext && verdict.significant && atFull && (
           <p className="verdict-secondary">{props.nationalContext}</p>
         )}
         <p className="verdict-secondary num">
@@ -89,7 +143,7 @@ export function VerdictScreen(props: VerdictProps) {
           {fullVerdict && (
             <p className="slider-anchor">
               <span className="strip-label">Full record, {props.fullFrom}–{maxYear}</span>
-              {fullVerdict.text}
+              {fullVerdict.headline}
             </p>
           )}
           <div className="slider-track-wrap">

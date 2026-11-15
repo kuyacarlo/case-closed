@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { GeoJSON, MapContainer, Rectangle, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { Overview, OverviewCode } from "../data";
+import type { Layer } from "../data";
 import { cellBounds, type CellCentre } from "../grid";
+import type { Theme } from "../types";
 import { NOT_CLEAR, slopeColour } from "./colour";
 import "./PhMap.css";
 
@@ -14,8 +15,12 @@ const PH_BOUNDS: LatLngBoundsExpression = [
 ];
 
 interface PhMapProps {
-  overview: Overview | null;
-  code: OverviewCode;
+  layer: Layer | null;
+  theme: Theme;
+  /** Colour-scale limit for this layer (see colour.scaleMax). */
+  max: number;
+  /** Hide squares whose trend isn't significant. */
+  significantOnly?: boolean;
   selected: CellCentre | null;
   onPick?: (lat: number, lon: number) => void;
   /** Small, non-interactive map zoomed to the selected cell. */
@@ -46,7 +51,7 @@ function FlyTo({ selected, mini }: { selected: CellCentre | null; mini?: boolean
 
 let outlinesCache: GeoJSON.FeatureCollection | null = null;
 
-export function PhMap({ overview, code, selected, onPick, mini, label }: PhMapProps) {
+export function PhMap({ layer, theme, max, significantOnly, selected, onPick, mini, label }: PhMapProps) {
   const [outlines, setOutlines] = useState<GeoJSON.FeatureCollection | null>(outlinesCache);
 
   useEffect(() => {
@@ -91,12 +96,13 @@ export function PhMap({ overview, code, selected, onPick, mini, label }: PhMapPr
           />
         )}
         {!mini &&
-          overview?.cells.map((c) => {
-            const v = c[code];
-            const clear = v.state === "confirmed" || v.state === "step";
+          layer?.cells.map((c) => {
+            const clear = c.sig;
+            if (significantOnly && !clear) return null;
+            const fill = c.dir === "flat" ? NOT_CLEAR : slopeColour(theme, c.sen, max);
             return (
               <Rectangle
-                key={`${c.lat},${c.lon}`}
+                key={`${layer.code}-${c.lat},${c.lon}`}
                 bounds={cellBounds(c)}
                 eventHandlers={{
                   click: (e) => {
@@ -105,12 +111,13 @@ export function PhMap({ overview, code, selected, onPick, mini, label }: PhMapPr
                   },
                 }}
                 pathOptions={{
-                  // No clear change: neutral grey, so colour always means "clear".
-                  fillColor: clear ? slopeColour(code, v.sen) : NOT_CLEAR,
-                  fillOpacity: clear ? 0.78 : 0.35,
-                  color: v.state === "step" ? "#0f1a24" : "#ffffff",
-                  weight: v.state === "step" ? 1.4 : 0.5,
-                  dashArray: v.state === "step" ? "3 3" : undefined,
+                  // Significant: solid. Not significant: same colour, faded,
+                  // so the direction still shows ("rising here, falling there").
+                  fillColor: fill,
+                  fillOpacity: clear ? 0.82 : 0.3,
+                  color: c.state === "step" ? "#0f1a24" : "#ffffff",
+                  weight: c.state === "step" ? 1.4 : 0.5,
+                  dashArray: c.state === "step" ? "3 3" : undefined,
                 }}
               />
             );

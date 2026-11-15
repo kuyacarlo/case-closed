@@ -40,7 +40,8 @@ from case_closed.app import FIRST_YEAR, LAST_YEAR  # noqa: E402
 from case_closed.grid import snap  # noqa: E402
 from case_closed.power import clean_power_response, fetch_power  # noqa: E402
 from case_closed.stats import analyze, annual_changepoint  # noqa: E402
-from case_closed.variables import OVERVIEW_CODES, get_variable  # noqa: E402
+from case_closed.grid_cases import OutsideGrid, load_grid_series  # noqa: E402
+from case_closed.variables import OVERVIEW_CODES, POWER_CODES, get_variable  # noqa: E402
 from case_closed.verdict import build_verdict  # noqa: E402
 
 CACHE = ROOT / "tools" / ".cache" / "power"
@@ -51,12 +52,12 @@ BREAK_SHARE = 0.20
 
 def payload_for(lat: float, lon: float) -> dict:
     CACHE.mkdir(parents=True, exist_ok=True)
-    key = CACHE / f"all{len(OVERVIEW_CODES)}_{lat:.4f}_{lon:.4f}_{FIRST_YEAR}_{LAST_YEAR}.json"
+    key = CACHE / f"all{len(POWER_CODES)}_{lat:.4f}_{lon:.4f}_{FIRST_YEAR}_{LAST_YEAR}.json"
     if key.exists():
         return json.loads(key.read_text())
     for attempt in range(5):
         try:
-            payload = fetch_power(",".join(OVERVIEW_CODES), lat, lon, FIRST_YEAR, LAST_YEAR, timeout=120)
+            payload = fetch_power(",".join(POWER_CODES), lat, lon, FIRST_YEAR, LAST_YEAR, timeout=120)
             key.write_text(json.dumps(payload))
             return payload
         except Exception:  # noqa: BLE001 - retry transient POWER errors
@@ -77,6 +78,14 @@ def bh_qvalues(p: np.ndarray) -> np.ndarray:
 
 def monthly(payload: dict, code: str, lat: float, lon: float, first: int) -> np.ndarray:
     var = get_variable(code)
+    if var.grid_file:
+        # NASA datasets downloaded from Giovanni (same loader as the API).
+        try:
+            series, _ = load_grid_series(code, var.grid_file, lat, lon, first, LAST_YEAR,
+                                         scale=var.scale, offset=var.offset)
+        except (OutsideGrid, FileNotFoundError):
+            return [], np.array([])
+        return series.points, np.array([p.value for p in series.points], dtype=float)
     series = clean_power_response(payload, code, lat, lon)
     pts = [p for p in series.points if f"{first}-01" <= p.t <= f"{LAST_YEAR}-12"]
     return pts, np.array([p.value * var.scale for p in pts], dtype=float)
@@ -166,8 +175,13 @@ def main() -> None:
         "last_year": LAST_YEAR,
         "vars": {},
     }
+    built_codes = []
     for code in OVERVIEW_CODES:
         have = [r for r in results if r["vars"][code] is not None]
+        if not have:
+            print(f"{code}: no data (download it first), skipped")
+            continue
+        built_codes.append(code)
         p = np.array([r["vars"][code]["p"] for r in have])
         q = bh_qvalues(p)
         for r, qv in zip(have, q):
@@ -212,14 +226,14 @@ def main() -> None:
 
     # Compact summary of all variables per square: [sen, significant, direction, state].
     compact = {
-        "codes": OVERVIEW_CODES,
+        "codes": built_codes,
         "cells": [
             {
                 "lat": r["lat"],
                 "lon": r["lon"],
                 "v": {
-                    c: [r["vars"][c]["sen"], int(r["vars"][c]["sig"]), r["vars"][c]["dir"][0], r["vars"][c]["state"]]
-                    for c in OVERVIEW_CODES
+                    c: [r["vars"][c]["sen"], int(r["vars"][c]["sig"]), r["vars"][c]["dir"], r["vars"][c]["state"]]
+                    for c in built_codes
                     if r["vars"][c] is not None
                 },
             }
