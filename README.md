@@ -24,13 +24,13 @@ Case Closed shows both numbers side by side:
 - **The honest test** (Hamed-Rao modified Mann-Kendall) — corrects for
   autocorrelation.
 
-When a trend isn't significant yet, it estimates how many more years of data it
-would take to call it.
+When a trend isn't significant yet, it estimates how long a record it would take
+to call it.
 
-**Metro Manila air temperature, 1981–2024:** Rising **0.14 °C per decade,
-significant (p = 0.002)**. The naive test reports p ≈ 1e-10 — wildly
-overconfident. Accounting for the 0.52 lag-1 autocorrelation shrinks 528 months
-to an effective 169, and the honest p-value lands at 0.002. Still a real trend,
+**Metro Manila air temperature, 1981–2025:** Rising **0.14 °C per decade,
+significant (p = 0.001)**. The naive test reports p ≈ 4e-12 — wildly
+overconfident. Accounting for the 0.52 lag-1 autocorrelation shrinks 540 months
+to an effective 172, and the honest p-value lands at 0.001. Still a real trend,
 but the honest number is the one you can defend.
 
 ## The challenge's workflow, step by step
