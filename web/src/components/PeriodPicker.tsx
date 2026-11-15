@@ -61,8 +61,8 @@ export function PeriodPicker({ min, max, start, end, onChange, label = "Time per
         </label>
       </div>
       <p className={`period-readout num${short ? " is-short" : ""}`} aria-live="polite">
-        {start}–{end} · {years} years
-        {short ? ` · under ${MIN_YEARS_FOR_VERDICT} years: too short for a significance verdict` : ""}
+        {start}–{end}, {years} years
+        {short ? `, under ${MIN_YEARS_FOR_VERDICT} years, too short for a significance verdict` : ""}
       </p>
       <p className="period-avail-note muted small">
         Data available {min}–{max}.{" "}

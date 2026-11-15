@@ -104,7 +104,7 @@ export function PhMap({ layer, theme, max, significantOnly, selected, highlight,
       >
         <TileLayer
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · Boundaries: geoBoundaries'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, boundaries from geoBoundaries'
         />
         {outlines && (
           <GeoJSON

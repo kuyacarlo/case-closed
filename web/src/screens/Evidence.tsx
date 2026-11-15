@@ -52,7 +52,7 @@ export function Evidence({
   return (
     <div className="container stack-lg">
       <section className="stack-sm">
-        <p className="eyebrow">Case · {meta.label}</p>
+        <p className="eyebrow">{meta.label}</p>
         <h1 className="h1-screen">{question}</h1>
       </section>
 
@@ -64,19 +64,17 @@ export function Evidence({
               {placeName}
               {meta.area ? (
                 <span className="muted">
-                  {" "}
-                  · average of {meta.area.squares} NASA data squares, weighted by land area
+                  , average of {meta.area.squares} NASA data squares, weighted by land area
                 </span>
               ) : size ? (
                 <span className="muted">
-                  {" "}
-                  · one NASA data square, about {size.ns} × {size.ew} km, centred on{" "}
+                  , one NASA data square, about {size.ns} × {size.ew} km, centred on{" "}
                   <span className="num">
                     {meta.cell!.lat.toFixed(2)}°N, {meta.cell!.lon.toFixed(2)}°E
                   </span>
                 </span>
               ) : (
-                <span className="muted"> · satellite measurements over this point</span>
+                <span className="muted">, satellite measurements over this point</span>
               )}
             </p>
             {alsoCovers && <p className="muted small">The same square also covers {alsoCovers}.</p>}
@@ -92,7 +90,7 @@ export function Evidence({
           <div>
             <span className="strip-label">Record</span>
             <p className="num">
-              {startYear}–{endYear} · {years} years · {meta.n_months} months
+              {startYear}–{endYear}, {years} years, {meta.n_months} months
             </p>
           </div>
         </div>

@@ -49,7 +49,7 @@ export function WitnessPanel({ main, second }: WitnessPanelProps) {
             <p className="muted small">{info.source}</p>
             <p className="witness-verdict">{cell.text}</p>
             <p className="small num">
-              {cell.first_year}–{cell.first_year + cell.annual.length - 1} · p = {formatP(cell.p)} ·{" "}
+              {cell.first_year}–{cell.first_year + cell.annual.length - 1}, p = {formatP(cell.p)},{" "}
               {cell.sig ? "significant" : "not significant"}
             </p>
             <Sparkline

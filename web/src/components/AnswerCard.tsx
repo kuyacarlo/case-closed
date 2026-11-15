@@ -56,7 +56,7 @@ export function AnswerCard({ place, cell, layer, info, towns, areaSquares, onEvi
       <div className="answer-top">
         <div>
           <p className="eyebrow">
-            {info.label} · {cell.first_year}–{lastYear}
+            {info.label}, {cell.first_year}–{lastYear}
           </p>
           <p className="answer-place">{place.name}</p>
           {place.context && <p className="answer-context">{place.context}</p>}

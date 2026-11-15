@@ -62,18 +62,29 @@ export function Explore(props: ExploreProps) {
 
   return (
     <div className="container stack-lg">
-      <section className="hero hero-compact stack-sm">
-        <p className="eyebrow">Earth System Trend Detective · Philippines</p>
-        <h1 className="h1-explore">What’s changing where you live?</h1>
-        <p className="lead">
-          Pick something to investigate and a place. We test decades of NASA data and tell
-          you if there’s a trend, how big it is, and whether it’s significant.
-        </p>
-        <div className="hero-actions">
-          <button className="btn btn-primary demo-btn" onClick={() => props.onDemo("manila")}>
-            ▶ Watch a 1-minute demo
-          </button>
+      <section className="hero-case">
+        <div className="hero-case-text stack-sm">
+          <img className="hero-mark" src="/logo-mark-on-dark.svg" width={44} height={44} alt="" />
+          <h1 className="h1-explore">What’s changing where you live?</h1>
+          <p className="lead">
+            Pick something to investigate and a place. We test decades of NASA data and tell
+            you if there’s a trend, how big it is, and whether it’s significant.
+          </p>
+          <div className="hero-actions">
+            <button className="btn btn-primary demo-btn" onClick={() => props.onDemo("manila")}>
+              ▶ Watch a 1-minute demo
+            </button>
+          </div>
         </div>
+        <figure className="hero-photo">
+          <img
+            src="/photos/philippines-viirs-2022-04-18.jpg"
+            width={1200}
+            height={900}
+            alt="The Philippines seen from orbit on a mostly clear day, with scattered cloud over the islands."
+          />
+          <figcaption>The Philippines, 18 April 2022. NASA Worldview, Suomi NPP VIIRS.</figcaption>
+        </figure>
       </section>
 
       <div className="explore-grid">
@@ -142,6 +153,25 @@ export function Explore(props: ExploreProps) {
               </>
             ) : (
               <div className="card explore-empty">
+                <svg className="empty-art" viewBox="0 0 150 96" aria-hidden="true">
+                  <g className="empty-art-grid">
+                    <rect x="8" y="8" width="22" height="22" rx="3" className="sq-2" />
+                    <rect x="34" y="8" width="22" height="22" rx="3" className="sq-3" />
+                    <rect x="60" y="8" width="22" height="22" rx="3" className="sq-1" />
+                    <rect x="8" y="34" width="22" height="22" rx="3" className="sq-1" />
+                    <rect x="34" y="34" width="22" height="22" rx="3" className="sq-4" />
+                    <rect x="60" y="34" width="22" height="22" rx="3" className="sq-3" />
+                    <rect x="86" y="34" width="22" height="22" rx="3" className="sq-2" />
+                    <rect x="34" y="60" width="22" height="22" rx="3" className="sq-0" />
+                    <rect x="60" y="60" width="22" height="22" rx="3" className="sq-2" />
+                    <rect x="86" y="60" width="22" height="22" rx="3" className="sq-1" />
+                  </g>
+                  <g className="empty-art-glass">
+                    <circle cx="84" cy="44" r="25" />
+                    <path d="M102 62 L130 88" />
+                    <path className="empty-art-trend" d="M68 54 L78 44 L86 50 L100 32" />
+                  </g>
+                </svg>
                 <h2>Pick a place</h2>
                 <p>
                   Search above or tap a square on the map. Each square is one NASA data
@@ -186,7 +216,10 @@ export function Explore(props: ExploreProps) {
         <h2>Featured cases</h2>
         <div className="card-row featured-cases">
           <article className="card stack-sm">
-            <p className="eyebrow">Demo · A significant trend</p>
+            <figure className="case-photo">
+              <img src="/photos/manila-viirs-2024-04-24.jpg" width={640} height={480} loading="lazy" alt="Metro Manila and Manila Bay from orbit, with small clouds over the land." />
+              <figcaption>Metro Manila, 24 April 2024. NASA Worldview, Suomi NPP VIIRS.</figcaption>
+            </figure>
             <h3 className="case-title">Is Metro Manila getting hotter?</h3>
             <p className="case-detail">
               Follow a full investigation: the raw data, removing the seasons, the trend,
@@ -197,7 +230,10 @@ export function Explore(props: ExploreProps) {
             </button>
           </article>
           <article className="card stack-sm">
-            <p className="eyebrow">Demo · Not significant yet</p>
+            <figure className="case-photo">
+              <img src="/photos/cagayan-viirs-2024-04-24.jpg" width={640} height={480} loading="lazy" alt="Northern Luzon from orbit, with the Cagayan Valley between two mountain ranges." />
+              <figcaption>Cagayan Valley, 24 April 2024. NASA Worldview, Suomi NPP VIIRS.</figcaption>
+            </figure>
             <h3 className="case-title">A trend that needs more years</h3>
             <p className="case-detail">
               Tuguegarao’s average temperature rises a little, but not significantly. See
@@ -208,7 +244,10 @@ export function Explore(props: ExploreProps) {
             </button>
           </article>
           <article className="card stack-sm">
-            <p className="eyebrow">Case · A faulty witness</p>
+            <figure className="case-photo">
+              <img src="/photos/monsoon-viirs-2024-08-20.jpg" width={640} height={480} loading="lazy" alt="Thick monsoon cloud covering most of Luzon, seen from orbit." />
+              <figcaption>Monsoon cloud over Luzon, 20 August 2024. NASA Worldview, Suomi NPP VIIRS.</figcaption>
+            </figure>
             <h3 className="case-title">The 1999 data break</h3>
             <p className="case-detail">
               Rainfall, evaporation and soil moisture all jump in 1999 across the whole
@@ -219,9 +258,10 @@ export function Explore(props: ExploreProps) {
             </button>
           </article>
           <article className="card stack-sm">
-            <p className="eyebrow">
-              Case · Air quality
-            </p>
+            <figure className="case-photo">
+              <img src="/photos/manila-night-black-marble-2016.jpg" width={640} height={480} loading="lazy" alt="City lights of Metro Manila at night, seen from orbit." />
+              <figcaption>Metro Manila at night, 2016. NASA Earth Observatory, Black Marble.</figcaption>
+            </figure>
             <h3 className="case-title">Did Manila’s air get cleaner?</h3>
             <p className="case-detail">
               Nitrogen dioxide from NASA’s OMI satellite, 2005 to 2025: 21 years, long
@@ -234,13 +274,26 @@ export function Explore(props: ExploreProps) {
         </div>
       </section>
 
-      <footer className="section footer-note">
-        Data: NASA GPM IMERG, GLDAS, Aura OMI and Aqua AIRS via Giovanni; NASA POWER
-        (MERRA-2 reanalysis; CERES SYN1deg for sunlight and cloud). Manila NO₂ also from
-        Sentinel-5P TROPOMI (ESA/Copernicus). Boundaries: geoBoundaries (CC BY 3.0 IGO).{" "}
-        <button className="link-btn" onClick={() => props.onMethods()}>
-          How it works
-        </button>
+      <footer className="section site-footer">
+        <div className="footer-lockup">
+          <img src="/logo-mark.svg" width={40} height={40} alt="" />
+          <div>
+            <p className="footer-name">Case Closed</p>
+            <p className="footer-by">
+              An Earth System Trend Detective for the Philippines, by team Earth Detectives.
+              Made in Manila for the NASA Space Apps Challenge 2026.
+            </p>
+          </div>
+        </div>
+        <p className="footer-note">
+          Data: NASA GPM IMERG, GLDAS, Aura OMI and Aqua AIRS via Giovanni; NASA POWER
+          (MERRA-2 reanalysis; CERES SYN1deg for sunlight and cloud). Manila NO₂ also from
+          Sentinel-5P TROPOMI (ESA/Copernicus). Boundaries: geoBoundaries (CC BY 3.0 IGO).
+          Satellite photos courtesy of NASA Worldview (EOSDIS) and NASA Earth Observatory.{" "}
+          <button className="link-btn" onClick={() => props.onMethods()}>
+            How it works
+          </button>
+        </p>
       </footer>
     </div>
   );

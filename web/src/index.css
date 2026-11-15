@@ -30,6 +30,11 @@
   --skeleton-a: #e6eaee;
   --skeleton-b: #eef1f4;
 
+  --ink-scrim: rgb(15 26 36 / 0.78);
+  --glass-fill: rgb(255 255 255 / 0.55);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
   /* Fonts */
   --font-head: "Space Grotesk", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;

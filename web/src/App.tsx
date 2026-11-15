@@ -43,12 +43,12 @@ type Status = "idle" | "loading" | "ready" | "error";
 const MANILA: Place = { name: "City of Manila", context: "Metro Manila (NCR)", lat: 14.5996, lon: 120.9851 };
 const CAGAYAN_VALLEY: Place = {
   name: "Cagayan Valley",
-  context: "Region · region average",
+  context: "Region, region average",
   lat: 17.1906,
   lon: 121.9864,
   area: "r-cagayan-valley",
 };
-const TUGUEGARAO: Place = { name: "Tuguegarao City", context: "Cagayan · Cagayan Valley", lat: 17.6066, lon: 121.7319 };
+const TUGUEGARAO: Place = { name: "Tuguegarao City", context: "Cagayan, Cagayan Valley", lat: 17.6066, lon: 121.7319 };
 
 function questionFor(code: string, label: string, name: string): string {
   switch (code) {
