@@ -107,3 +107,27 @@ def test_falling_trend_negative_slope():
     values = manila_like_series()
     res, _ = analyze(values[::-1], start_month=1)
     assert res.sen_slope_per_decade < 0
+
+
+def test_pettitt_finds_a_step():
+    import numpy as np
+    from case_closed.stats import annual_changepoint, pettitt
+    rng = np.random.default_rng(0)
+    x = np.r_[rng.normal(0, 1, 20), rng.normal(2, 1, 20)]
+    k, p = pettitt(x)
+    assert k == 20 and p < 0.001
+
+    # Monthly series: flat at 5 for 18 years, then flat at 8.5 for 26 years.
+    months = np.r_[np.full(18 * 12, 5.0), np.full(26 * 12, 8.5)] + rng.normal(0, 0.3, 44 * 12)
+    cp = annual_changepoint(months, 1981, 1)
+    assert cp["year"] == 1999
+    assert cp["step_dominated"] is True
+
+
+def test_steady_trend_is_not_step_dominated():
+    import numpy as np
+    from case_closed.stats import annual_changepoint
+    rng = np.random.default_rng(1)
+    months = np.linspace(0, 2, 44 * 12) + rng.normal(0, 0.2, 44 * 12)
+    cp = annual_changepoint(months, 1981, 1)
+    assert cp["step_dominated"] is False

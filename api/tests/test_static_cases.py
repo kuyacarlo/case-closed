@@ -31,7 +31,16 @@ def test_no2_case_served_from_static_file():
     # Values are scaled to umol/m^2, so they should be order ~10s, not 1e-5.
     first = body["series"][0]["value"]
     assert 1 < abs(first) < 1000
-    assert body["verdict"]["state"] in {"confirmed", "not_yet"}
+    # 79 months is under the 20-year minimum, so the app must refuse to call it.
+    assert body["verdict"]["state"] == "too_short"
+
+
+def test_no2_refused_outside_manila():
+    client = TestClient(app)
+    r = client.get("/api/case", params={"lat": 10.32, "lon": 123.9, "variable": "NO2",
+                                        "start": 2018, "end": 2024})
+    assert r.status_code == 404
+    assert "Metro Manila" in r.json()["detail"]
 
 
 def test_no2_short_record_warns():

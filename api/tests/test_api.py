@@ -35,9 +35,9 @@ def test_verdict_confirmed_text():
         n_eff=171,
         years_needed=44,
     )
-    v = build_verdict(trend, get_variable("T2M"), 1981)
+    v = build_verdict(trend, get_variable("T2M"), 1981, n_months=528)
     assert v["state"] == "confirmed"
-    assert "Rising" in v["text"]
+    assert "Getting warmer" in v["text"]
     assert "0.15" in v["text"]
     assert "1981" in v["text"]
 
@@ -53,9 +53,10 @@ def test_verdict_not_yet_text():
         n_eff=100,
         years_needed=60,
     )
-    v = build_verdict(trend, get_variable("T2M"), 1981)
+    v = build_verdict(trend, get_variable("T2M"), 1981, n_months=528)
     assert v["state"] == "not_yet"
-    assert "60 more years" in v["text"]
+    assert "No clear change" in v["text"]
+    assert "60 years" in v["detail"]
 
 
 def test_verdict_falling():
@@ -69,9 +70,9 @@ def test_verdict_falling():
         n_eff=120,
         years_needed=None,
     )
-    v = build_verdict(trend, get_variable("T2M"), 2000)
+    v = build_verdict(trend, get_variable("T2M"), 2000, n_months=300)
     assert v["state"] == "confirmed"
-    assert "Falling" in v["text"]
+    assert "Getting cooler" in v["text"]
 
 
 @pytest.fixture
@@ -112,7 +113,7 @@ def test_case_contract_shape(client):
         assert key in trend
 
     assert body["series"][0].keys() == {"t", "value", "climatology", "anomaly"}
-    assert body["verdict"]["state"] in {"confirmed", "not_yet"}
+    assert body["verdict"]["state"] in {"confirmed", "not_yet", "step", "too_short"}
 
 
 def test_case_verdict_confirmed(client):
@@ -130,3 +131,71 @@ def test_variables_endpoint(client):
     assert r.status_code == 200
     codes = [v["code"] for v in r.json()["variables"]]
     assert "T2M" in codes and "PRECTOTCORR" in codes
+
+
+def _trend(**kw):
+    base = dict(sen_slope_per_decade=0.4, ols_slope_per_decade=0.35, ci95=0.2,
+                p_naive=1e-6, p_honest=1e-4, lag1=0.3, n_eff=40, years_needed=10)
+    base.update(kw)
+    return TrendResult(**base)
+
+
+def test_verdict_too_short_even_when_significant():
+    v = build_verdict(_trend(), get_variable("T2M"), 2019, n_months=72)
+    assert v["state"] == "too_short"
+    assert "6 years" in v["detail"]
+
+
+def test_verdict_step_when_change_is_mostly_a_jump():
+    cp = {"year": 1999, "p": 1e-5, "mean_before": 5.7, "mean_after": 8.5,
+          "slope_after_per_decade": 0.07, "step_dominated": True}
+    v = build_verdict(_trend(changepoint=cp), get_variable("PRECTOTCORR"), 1981, n_months=528)
+    assert v["state"] == "step"
+    assert "1999" in v["text"] and "Getting wetter" in v["text"]
+
+
+def test_verdict_hides_huge_years_needed():
+    t = _trend(p_honest=0.4, years_needed=190)
+    v = build_verdict(t, get_variable("T2M"), 1981, n_months=528)
+    assert v["state"] == "not_yet"
+    assert "190" not in v["detail"]
+
+
+@pytest.mark.parametrize("params", [
+    {"start": 1970, "end": 2024},
+    {"start": 1981, "end": 2030},
+    {"start": 2024, "end": 2000},
+    {"lat": 999},
+    {"lon": -200},
+])
+def test_bad_inputs_400(client, params):
+    q = {"lat": 14.6, "lon": 121.0, "variable": "T2M", **params}
+    r = client.get("/api/case", params=q)
+    assert r.status_code == 400
+
+
+def test_case_reports_snapped_cell(client):
+    r = client.get("/api/case", params={"lat": 14.6, "lon": 121.0, "variable": "T2M"})
+    cell = r.json()["meta"]["cell"]
+    assert cell == {"lat": 14.5, "lon": 121.25, "dlat": 0.5, "dlon": 0.625}
+
+
+def test_upstream_failure_hides_url(monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("https://power.larc.nasa.gov/secret?x=1 exploded")
+    monkeypatch.setattr(app_module, "get_series", boom)
+    r = TestClient(app_module.app).get("/api/case", params={"lat": 10, "lon": 123})
+    assert r.status_code == 502
+    assert "http" not in r.json()["detail"]
+
+
+def test_rainfall_before_2000_refused_with_reason(client):
+    r = client.get("/api/case", params={"lat": 16.4, "lon": 120.6, "variable": "PRECTOTCORR",
+                                        "start": 1981, "end": 2024})
+    assert r.status_code == 400
+    assert "2000" in r.json()["detail"]
+
+
+def test_rainfall_defaults_to_its_first_year(client):
+    r = client.get("/api/case", params={"lat": 16.4, "lon": 120.6, "variable": "PRECTOTCORR"})
+    assert r.status_code == 200

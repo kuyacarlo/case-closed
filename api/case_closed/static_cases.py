@@ -9,7 +9,12 @@ from __future__ import annotations
 
 import json
 
+from .grid import snap
 from .power import DATA_DIR, MonthlyPoint, MonthlySeries, clean_power_response
+
+
+class OutsideStaticArea(ValueError):
+    """The requested point is not where the static file was exported."""
 
 
 def load_static_series(
@@ -28,6 +33,13 @@ def load_static_series(
     """
     path = DATA_DIR / static_file
     payload = json.loads(path.read_text())
+
+    # A static file holds one exported location. Only answer for points in the
+    # same POWER grid cell, so other places never receive this place's data.
+    header = payload.get("header", {})
+    if "lat" in header and "lon" in header:
+        if snap(lat, lon) != snap(float(header["lat"]), float(header["lon"])):
+            raise OutsideStaticArea(variable_code)
     series = clean_power_response(payload, variable_code, lat, lon)
 
     if scale != 1.0:
