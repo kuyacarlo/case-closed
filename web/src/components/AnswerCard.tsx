@@ -111,7 +111,7 @@ export function AnswerCard({ place, cell, layer, info, towns, areaSquares, onEvi
 
       <div className="answer-actions">
         <button className="btn btn-primary" onClick={onEvidence}>
-          4 · Create the time series
+          Create the time series
         </button>
       </div>
     </section>

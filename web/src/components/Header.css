@@ -55,11 +55,11 @@
   color: var(--muted);
   cursor: pointer;
 }
-.step-pill[aria-disabled="true"] {
+.step-pill[data-unused] {
   cursor: default;
   opacity: 0.6;
 }
-.step-pill:not([aria-disabled="true"]):not(.step-current):hover {
+.step-pill:not(.step-current):hover {
   border-color: var(--ink);
   color: var(--ink);
 }
@@ -111,15 +111,30 @@
 }
 
 @media (max-width: 640px) {
-  .wordmark span,
-  .step-label {
+  /* Two rows: logo + "How it works", then the three steps full width. */
+  .site-header-inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding-block: 8px;
+    row-gap: 8px;
+  }
+  .wordmark span {
     display: none;
   }
-  .step-pill {
-    min-width: 36px;
-    padding: 0 10px;
-  }
   .header-right {
-    gap: 8px;
+    display: contents;
+  }
+  .methods-link {
+    margin-left: auto;
+  }
+  .steps {
+    order: 3;
+    width: 100%;
+  }
+  .step-pill {
+    flex: 1 1 0;
+    padding: 0 6px;
+    font-size: 11px;
+    letter-spacing: 0.03em;
   }
 }

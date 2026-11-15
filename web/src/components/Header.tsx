@@ -5,21 +5,20 @@ export type Step = 1 | 2 | 3;
 interface HeaderProps {
   current: Step | "methods";
   onHome: () => void;
-  onStep?: (step: Step) => void;
+  onStep: (step: Step) => void;
   onMethods: () => void;
-  /** Steps the user is allowed to jump to (a place must be chosen for 2 and 3). */
-  enabled?: Step[];
 }
 
-// The challenge's workflow: 1-3 (variable, region, time period) are set up on
-// the home page, 4 is the time series, 5 is the significance test.
+// The challenge's workflow: set up (variable, region, time period), the time
+// series, then the significance test. Every pill is always clickable; App
+// decides where to go if no place has been picked yet.
 const STEPS: { n: Step; label: string; covers: string }[] = [
-  { n: 1, label: "Set up", covers: "Steps 1–3: variable, region, time period" },
-  { n: 2, label: "Time series", covers: "Step 4: create the time series and examine it" },
-  { n: 3, label: "Significance", covers: "Step 5: test the trend for significance" },
+  { n: 1, label: "Set up", covers: "Choose a variable, a region and a time period" },
+  { n: 2, label: "Time series", covers: "Create the time series and examine it" },
+  { n: 3, label: "Significance", covers: "Test the trend for significance" },
 ];
 
-export function Header({ current, onHome, onStep, onMethods, enabled = [1] }: HeaderProps) {
+export function Header({ current, onHome, onStep, onMethods }: HeaderProps) {
   return (
     <header className="site-header">
       <a className="skip-link" href="#main">
@@ -34,19 +33,16 @@ export function Header({ current, onHome, onStep, onMethods, enabled = [1] }: He
           <nav className="steps" aria-label="Progress">
             {STEPS.map(({ n, label, covers }) => {
               const isCurrent = n === current;
-              const canGo = enabled.includes(n) && !!onStep && !isCurrent;
               return (
                 <button
                   key={n}
                   type="button"
                   className={`step-pill${isCurrent ? " step-current" : ""}`}
-                  aria-disabled={!canGo && !isCurrent}
-                  title={!canGo && !isCurrent ? `${covers} (pick a place first)` : covers}
+                  title={covers}
                   aria-current={isCurrent ? "step" : undefined}
-                  aria-label={`Step ${n}: ${label}`}
-                  onClick={() => canGo && onStep?.(n)}
+                  onClick={() => onStep(n)}
                 >
-                  <span className="step-n">{n}</span> <span className="step-label">{label}</span>
+                  {label}
                 </button>
               );
             })}

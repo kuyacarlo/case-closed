@@ -6,10 +6,12 @@ import "./PlaceSearch.css";
 interface PlaceSearchProps {
   onPick: (place: Place) => void;
   autoFocus?: boolean;
+  /** Stable id for the input, so other controls can focus it. */
+  inputId?: string;
 }
 
 /** Combobox (ARIA 1.2 pattern) over every PH region, province and town. */
-export function PlaceSearch({ onPick, autoFocus }: PlaceSearchProps) {
+export function PlaceSearch({ onPick, autoFocus, inputId }: PlaceSearchProps) {
   const [all, setAll] = useState<RawPlace[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [text, setText] = useState("");
@@ -52,13 +54,13 @@ export function PlaceSearch({ onPick, autoFocus }: PlaceSearchProps) {
 
   return (
     <div className="place-search">
-      <label className="field" htmlFor={`${listId}-input`}>
+      <label className="field" htmlFor={inputId ?? `${listId}-input`}>
         Search a town, city, province, region or island group
       </label>
       <div className="place-input-wrap">
       <input
         ref={inputRef}
-        id={`${listId}-input`}
+        id={inputId ?? `${listId}-input`}
         type="text"
         role="combobox"
         aria-expanded={showList}

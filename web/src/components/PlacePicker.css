@@ -1,0 +1,51 @@
+.place-picker {
+  display: grid;
+  gap: 10px;
+}
+.pp-tabs {
+  display: inline-flex;
+  justify-self: start;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px;
+  background: var(--surface);
+  gap: 2px;
+}
+.pp-tabs button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.pp-tabs button.is-on {
+  background: var(--ink);
+  color: #fff;
+}
+.pp-selects {
+  display: grid;
+  gap: 10px;
+}
+.pp-field {
+  display: grid;
+  gap: 4px;
+}
+.pp-field > span {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pp-field select {
+  font-size: 16px; /* avoids iOS zoom on focus */
+}
+.pp-field select:disabled {
+  background: var(--page);
+  color: var(--muted);
+}
