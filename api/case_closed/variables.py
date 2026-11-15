@@ -1,7 +1,7 @@
 """Variable catalog: POWER parameter codes, labels, units, plain definitions.
 
-Item 6 of the MVP. Starts with air temperature and rainfall. Each definition
-is one plain sentence aimed at a high-school student.
+Item 6 of the MVP. Each definition is one plain sentence aimed at a
+high-school student.
 """
 from __future__ import annotations
 
@@ -19,7 +19,15 @@ class Variable:
     static_file: str | None = None
     # Multiply raw values by this for display (e.g. mol/m^2 -> umol/m^2).
     scale: float = 1.0
+    # Shown with the evidence when the data itself can mislead.
+    caveat: str | None = None
 
+
+MODEL_CAVEAT = (
+    "This value comes from a weather model that blends many instruments. The "
+    "instruments changed over the decades, and that change can look like a "
+    "trend, so compare it with station records before you trust it."
+)
 
 VARIABLES: dict[str, Variable] = {
     "T2M": Variable(
@@ -35,6 +43,49 @@ VARIABLES: dict[str, Variable] = {
         units="mm/day",
         definition="How much rain falls, averaged over each day of the month.",
         source="NASA POWER (MERRA-2)",
+        caveat=(
+            "This rainfall comes from a weather model corrected with rain gauges "
+            "and satellites. The instruments feeding it changed over the decades, "
+            "so compare a long rainfall trend with rain-gauge records before you "
+            "trust it."
+        ),
+    ),
+    "T2M_MAX": Variable(
+        code="T2M_MAX",
+        label="Hottest temperature of the month",
+        units="°C",
+        definition="The highest air temperature reached in each month.",
+        source="NASA POWER (MERRA-2)",
+    ),
+    "T2M_MIN": Variable(
+        code="T2M_MIN",
+        label="Coldest temperature of the month",
+        units="°C",
+        definition="The lowest air temperature reached in each month.",
+        source="NASA POWER (MERRA-2)",
+    ),
+    "TS": Variable(
+        code="TS",
+        label="Ground surface temperature",
+        units="°C",
+        definition="How warm the surface of the ground itself is.",
+        source="NASA POWER (MERRA-2)",
+    ),
+    "RH2M": Variable(
+        code="RH2M",
+        label="Humidity",
+        units="% RH",
+        definition="How much water vapor the air holds, compared with the most it could hold.",
+        source="NASA POWER (MERRA-2)",
+        caveat=MODEL_CAVEAT,
+    ),
+    "WS2M": Variable(
+        code="WS2M",
+        label="Wind speed",
+        units="m/s",
+        definition="How fast the air moves 2 meters above the ground.",
+        source="NASA POWER (MERRA-2)",
+        caveat=MODEL_CAVEAT,
     ),
     "NO2": Variable(
         code="NO2",

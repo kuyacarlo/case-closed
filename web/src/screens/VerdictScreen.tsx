@@ -45,8 +45,8 @@ export function VerdictScreen({
           <p className="test-method">Plain Mann-Kendall</p>
           <p className="test-p num">{formatP(trend.p_naive)}</p>
           <p className="test-note">
-            It assumes every month is independent, so it treats a slow drift as
-            far more evidence than it is. Overconfident.
+            It assumes every month is independent. When months resemble their
+            neighbors, that makes a trend look more certain than it is.
           </p>
         </article>
         <article className="card test-card test-honest">
@@ -54,7 +54,7 @@ export function VerdictScreen({
           <p className="test-method">Hamed-Rao modified Mann-Kendall</p>
           <p className="test-p num">{formatP(trend.p_honest)}</p>
           <p className="test-note">
-            Warm months follow warm months (lag-1 autocorrelation{" "}
+            Each month resembles the one before it (lag-1 autocorrelation{" "}
             <span className="num">{trend.lag1.toFixed(2)}</span>), so the{" "}
             {meta.n_months} months really count like{" "}
             <span className="num">{trend.n_eff}</span>. This p-value accounts
@@ -72,13 +72,17 @@ export function VerdictScreen({
           Least squares: {trend.ols_slope_per_decade.toFixed(2)} &plusmn;{" "}
           {trend.ci95.toFixed(2)} {units} per decade
         </p>
-        {!confirmed && trend.years_needed != null && (
+        {!confirmed && trend.p_honest >= 0.05 && trend.years_needed != null && (
           <p className="verdict-secondary">
             At this noise level, about {trend.years_needed} years of record
             would be needed to call it.
           </p>
         )}
       </section>
+
+      {meta.warnings.length > 0 && (
+        <p className="definition-box">{meta.warnings.join(" ")}</p>
+      )}
 
       <section className="section stack-md">
         <h2>Change the window</h2>

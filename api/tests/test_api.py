@@ -19,6 +19,10 @@ def test_format_p_scientific_below_threshold():
     assert "e-" in format_p(4e-12)
 
 
+def test_format_p_zero_is_a_bound():
+    assert format_p(0.0) == "< 1e-16"
+
+
 def test_format_p_three_decimals_above_threshold():
     assert format_p(0.001) == "0.001"
     assert format_p(0.0423) == "0.042"
@@ -40,6 +44,22 @@ def test_verdict_confirmed_text():
     assert "Rising" in v["text"]
     assert "0.15" in v["text"]
     assert "1981" in v["text"]
+
+
+def test_verdict_short_record_is_not_confirmed():
+    trend = TrendResult(
+        sen_slope_per_decade=1.13,
+        ols_slope_per_decade=1.0,
+        ci95=0.5,
+        p_naive=1e-6,
+        p_honest=1e-4,
+        lag1=0.32,
+        n_eff=43,
+        years_needed=9,
+    )
+    v = build_verdict(trend, get_variable("T2M"), 2018, n_months=84)
+    assert v["state"] == "not_yet"
+    assert "7 years is too short" in v["text"]
 
 
 def test_verdict_not_yet_text():
@@ -120,6 +140,14 @@ def test_case_verdict_confirmed(client):
     assert r.json()["verdict"]["state"] == "confirmed"
 
 
+def test_rainfall_carries_data_caveat(client):
+    params = {"lat": 14.6, "lon": 121.0}
+    rain = client.get("/api/case", params={**params, "variable": "PRECTOTCORR"})
+    temp = client.get("/api/case", params={**params, "variable": "T2M"})
+    assert any("rain-gauge" in w for w in rain.json()["meta"]["warnings"])
+    assert temp.json()["meta"]["warnings"] == []
+
+
 def test_unknown_variable_400(client):
     r = client.get("/api/case", params={"lat": 14.6, "lon": 121.0, "variable": "NOPE"})
     assert r.status_code == 400
@@ -129,4 +157,4 @@ def test_variables_endpoint(client):
     r = client.get("/api/variables")
     assert r.status_code == 200
     codes = [v["code"] for v in r.json()["variables"]]
-    assert "T2M" in codes and "PRECTOTCORR" in codes
+    assert {"T2M", "PRECTOTCORR", "T2M_MAX", "T2M_MIN", "TS", "RH2M", "WS2M", "NO2"} <= set(codes)

@@ -69,6 +69,8 @@ def case(
     values = np.array([p.value for p in series.points], dtype=float)
     start_month = int(series.points[0].t[5:7])
     trend, warnings = analyze(values, start_month=start_month)
+    if var.caveat:
+        warnings.append(var.caveat)
 
     from .stats import monthly_anomalies, sen_slope_per_decade
 
@@ -76,7 +78,7 @@ def case(
     climatology = values - anomalies
 
     start_year = int(series.points[0].t[:4])
-    verdict = build_verdict(trend, var, start_year)
+    verdict = build_verdict(trend, var, start_year, len(values))
 
     series_out = [
         {

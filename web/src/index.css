@@ -240,6 +240,43 @@ input[type="text"]:focus {
   font-family: var(--font-mono);
 }
 
+/* Place comparison table */
+.lineup {
+  overflow-x: auto;
+}
+.lineup table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.lineup caption {
+  text-align: left;
+  color: var(--muted);
+  padding-bottom: 12px;
+}
+.lineup th,
+.lineup td {
+  text-align: left;
+  padding: 10px 12px 10px 0;
+  border-top: 1px solid var(--border);
+  white-space: nowrap;
+}
+.lineup thead th {
+  border-top: 0;
+  color: var(--muted);
+  font-weight: 500;
+}
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--blue);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 @media (max-width: 640px) {
   .h1-home {
     font-size: 40px;

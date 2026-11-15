@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { VariableInfo } from "../types";
-import type { CaseQuery } from "../api";
+import { fetchCase, type CaseQuery } from "../api";
+import { formatP, signed } from "../format";
 import "./Screens.css";
 
 interface OpenCaseProps {
@@ -34,24 +35,90 @@ const PLACES: Record<string, { lat: number; lon: number }> = {
   "Davao City": { lat: 7.07, lon: 125.6 },
   "Baguio City": { lat: 16.41, lon: 120.6 },
   "Iloilo City": { lat: 10.72, lon: 122.56 },
+  "Laoag City": { lat: 18.2, lon: 120.59 },
+  "Tuguegarao City": { lat: 17.61, lon: 121.73 },
+  "Legazpi City": { lat: 13.14, lon: 123.74 },
+  "Puerto Princesa": { lat: 9.74, lon: 118.74 },
+  "Tacloban City": { lat: 11.24, lon: 125.0 },
+  "Bacolod City": { lat: 10.68, lon: 122.95 },
+  "Cagayan de Oro": { lat: 8.48, lon: 124.65 },
+  "Butuan City": { lat: 8.95, lon: 125.54 },
+  "Zamboanga City": { lat: 6.91, lon: 122.07 },
+  "General Santos": { lat: 6.11, lon: 125.17 },
+};
+
+interface LineupRow {
+  place: string;
+  slope: number;
+  p: number;
+  confirmed: boolean;
+}
+
+// The case question for each variable.
+const QUESTIONS: Record<string, (place: string) => string> = {
+  T2M: (p) => `Is ${p} getting hotter?`,
+  PRECTOTCORR: (p) => `Is ${p} getting wetter?`,
+  T2M_MAX: (p) => `Are the hottest days in ${p} getting hotter?`,
+  T2M_MIN: (p) => `Are the coldest nights in ${p} getting warmer?`,
+  TS: (p) => `Is the ground in ${p} getting hotter?`,
+  RH2M: (p) => `Is ${p} getting more humid?`,
+  WS2M: (p) => `Is ${p} getting windier?`,
 };
 
 export function OpenCase({ variables, onOpenCase }: OpenCaseProps) {
   const [variable, setVariable] = useState(variables[0]?.code ?? "T2M");
   const [place, setPlace] = useState("Metro Manila");
   const formRef = useRef<HTMLDivElement>(null);
+  const [lineup, setLineup] = useState<LineupRow[]>([]);
+  const [lineupVar, setLineupVar] = useState<VariableInfo | null>(null);
+  const [lineupBusy, setLineupBusy] = useState(false);
 
   const selectedVar = variables.find((v) => v.code === variable) ?? variables[0];
 
   function openOwn() {
     const coord = PLACES[place];
-    const q =
-      variable === "T2M"
-        ? `Is ${place} getting hotter?`
-        : variable === "PRECTOTCORR"
-          ? `Is ${place} getting wetter?`
-          : `Is ${place}'s ${selectedVar?.label.toLowerCase()} changing?`;
+    const q = questionFor(variable, selectedVar?.label ?? "", place);
     onOpenCase({ lat: coord.lat, lon: coord.lon, variable, start: 1981, end: 2024 }, q);
+  }
+
+  function questionFor(code: string, label: string, where: string) {
+    return (
+      QUESTIONS[code]?.(where) ?? `Is ${where}'s ${label.toLowerCase()} changing?`
+    );
+  }
+
+  // Runs the same case for every place, three at a time.
+  async function runLineup() {
+    if (!selectedVar) return;
+    setLineup([]);
+    setLineupVar(selectedVar);
+    setLineupBusy(true);
+    const queue = Object.entries(PLACES);
+    async function worker() {
+      for (let next = queue.shift(); next; next = queue.shift()) {
+        const [name, coord] = next;
+        try {
+          const d = await fetchCase({
+            lat: coord.lat,
+            lon: coord.lon,
+            variable: selectedVar!.code,
+            start: 1981,
+            end: 2024,
+          });
+          const row = {
+            place: name,
+            slope: d.trend.sen_slope_per_decade,
+            p: d.trend.p_honest,
+            confirmed: d.verdict.state === "confirmed",
+          };
+          setLineup((rows) => [...rows, row].sort((x, y) => y.slope - x.slope));
+        } catch {
+          // A place that fails to load is left out of the table.
+        }
+      }
+    }
+    await Promise.all([worker(), worker(), worker()]);
+    setLineupBusy(false);
   }
 
   // Own-case picker offers only live (POWER) variables; static cases such as
@@ -170,6 +237,71 @@ export function OpenCase({ variables, onOpenCase }: OpenCaseProps) {
             </p>
           )}
         </div>
+      </section>
+
+      <section className="section stack-md">
+        <h2>Where is it changing?</h2>
+        <p className="lead">
+          Run the same test on all {Object.keys(PLACES).length} places and see
+          which trends hold up.
+        </p>
+        <div>
+          <button
+            className="btn btn-outline"
+            onClick={runLineup}
+            disabled={lineupBusy}
+          >
+            {lineupBusy
+              ? `Checking ${lineup.length} of ${Object.keys(PLACES).length}`
+              : `Compare ${selectedVar?.label.toLowerCase()} across places`}
+          </button>
+        </div>
+        {lineupVar && lineup.length > 0 && (
+          <div className="card lineup">
+            <table>
+              <caption>
+                {lineupVar.label}, 1981 to 2024, sorted by rate of change
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Place</th>
+                  <th scope="col">Change per decade</th>
+                  <th scope="col">Honest p-value</th>
+                  <th scope="col">Verdict</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lineup.map((r) => (
+                  <tr key={r.place}>
+                    <th scope="row">
+                      <button
+                        className="link-btn"
+                        onClick={() =>
+                          onOpenCase(
+                            {
+                              ...PLACES[r.place],
+                              variable: lineupVar.code,
+                              start: 1981,
+                              end: 2024,
+                            },
+                            questionFor(lineupVar.code, lineupVar.label, r.place),
+                          )
+                        }
+                      >
+                        {r.place}
+                      </button>
+                    </th>
+                    <td className="num">
+                      {signed(r.slope)} {lineupVar.units}
+                    </td>
+                    <td className="num">{formatP(r.p)}</td>
+                    <td>{r.confirmed ? "Confirmed" : "Not enough evidence yet"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <footer className="section footer-note">

@@ -39,7 +39,7 @@ but the honest number is the one you can defend.
 | --- | --- | --- | --- |
 | **Air temperature** | Is Metro Manila getting hotter? | NASA POWER (model-based) | Rising, confirmed |
 | **Nitrogen dioxide** | Did Manila's air get cleaner? | Sentinel-5P TROPOMI (satellite) | Not enough evidence yet |
-| **Your choice** | Any Philippine city, temperature or rainfall | NASA POWER | live |
+| **Your choice** | 15 Philippine cities and 7 variables (air temperature, monthly hottest and coldest temperature, ground temperature, rainfall, humidity, wind speed) | NASA POWER | live |
 
 The NO₂ case is honest in a different way: seven years of satellite data (2018–)
 is too short to confirm a trend, so the verdict is "not yet, about 70 years of
@@ -58,12 +58,13 @@ On a monthly series:
    `n_eff = n · (1 − r1) / (1 + r1)`, `r1` = lag-1 autocorrelation of residuals.
 7. **Years needed** (Weatherhead et al. 1998) when the trend isn't significant.
 
-Verdict is `confirmed` when the honest p-value < 0.05, otherwise `not_yet`.
+Verdict is `confirmed` when the honest p-value < 0.05 on at least 120 months,
+otherwise `not_yet`.
 
 ## Data sources
 
 - **NASA POWER** — monthly point queries, no login. Built on MERRA-2 and CERES,
-  so values are labelled **model-based** in the UI. Air temperature and rainfall.
+  so values are labelled **model-based** in the UI. Air temperature, monthly hottest and coldest temperature, ground temperature, rainfall, humidity and wind speed.
 - **Sentinel-5P TROPOMI** — tropospheric NO₂, exported offline from Google Earth
   Engine into `data/` and served through the same API. The app never calls Earth
   Engine; `tools/gee/export_no2.py` produces the JSON.
@@ -91,7 +92,7 @@ Backend (Python, [uv](https://docs.astral.sh/uv/)):
 ```
 cd api
 uv sync --extra dev
-uv run pytest -q                      # 30 tests
+uv run pytest -q                      # 33 tests
 uv run uvicorn case_closed.app:app --port 8000
 ```
 
@@ -122,6 +123,9 @@ and reviewed by the team. This covers the FastAPI backend, the React frontend,
 the Earth Engine exporter, the tests, the deployment pipeline, and this README.
 The statistical method, design, and scope were defined by the team; the agent
 implemented them. Results were validated against real NASA POWER data.
+A second AI coding agent (Claude Code) reviewed the code and wrote later fixes
+to the years-needed wording, the rainfall data caveat, the short-record rule
+and the display of very small p-values.
 
 ## Attribution
 

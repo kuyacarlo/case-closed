@@ -51,6 +51,8 @@ export function EvidenceChart({ series, units }: { series: SeriesPoint[]; units:
             stroke={STRONG}
           />
           <YAxis
+            domain={["auto", "auto"]}
+            allowDecimals={false}
             tick={AXIS_STYLE}
             stroke={STRONG}
             width={48}
