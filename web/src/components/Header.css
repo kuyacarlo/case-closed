@@ -22,14 +22,24 @@
   font-weight: 700;
   font-size: 20px;
   color: var(--ink);
+  background: none;
+  border: 0;
+  padding: 4px;
+  border-radius: var(--radius-control);
 }
 .wordmark img {
   display: block;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .steps {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .step-pill {
@@ -37,29 +47,79 @@
   font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 7px 12px;
+  min-height: 36px;
+  padding: 0 12px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--muted);
   cursor: pointer;
 }
-.step-pill:disabled {
+.step-pill[aria-disabled="true"] {
   cursor: default;
+  opacity: 0.6;
 }
-.step-pill:not(:disabled):hover {
+.step-pill:not([aria-disabled="true"]):not(.step-current):hover {
   border-color: var(--ink);
   color: var(--ink);
 }
-
 .step-current {
   background: var(--ink);
   border-color: var(--ink);
   color: #fff;
 }
 
-@media (max-width: 520px) {
-  .wordmark span {
+.methods-link {
+  background: none;
+  border: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+  min-height: 36px;
+  padding: 0 4px;
+  border-radius: var(--radius-control);
+}
+.methods-link.is-current {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  background: var(--ink);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  z-index: 2000;
+  /* Hidden until focused (a negative top still shows when the header is
+     stuck mid-page). */
+  clip-path: inset(50%);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.skip-link:focus {
+  clip-path: none;
+  width: auto;
+  height: auto;
+}
+
+@media (max-width: 640px) {
+  .wordmark span,
+  .step-label {
     display: none;
+  }
+  .step-pill {
+    min-width: 36px;
+    padding: 0 10px;
+  }
+  .header-right {
+    gap: 8px;
   }
 }

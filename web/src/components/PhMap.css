@@ -1,0 +1,27 @@
+.ph-map {
+  height: 620px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: #dfe5ea;
+}
+.ph-map-mini {
+  height: 240px;
+}
+.ph-map .leaflet-container {
+  font-family: var(--font-body);
+}
+.ph-map .leaflet-interactive:focus {
+  outline: none;
+}
+@media (max-width: 900px) {
+  .ph-map:not(.ph-map-mini) {
+    height: 58vh;
+    min-height: 340px;
+  }
+}
+
+/* Mute the OpenStreetMap tiles so the data squares carry the colour. */
+.ph-map .leaflet-tile-pane {
+  filter: grayscale(1) brightness(1.3) contrast(0.65);
+}

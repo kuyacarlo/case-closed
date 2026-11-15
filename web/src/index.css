@@ -183,6 +183,12 @@ input[type="text"] {
   font-family: var(--font-body);
   font-size: 15px;
 }
+/* Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
 select:focus,
 input[type="text"]:focus {
   outline: 2px solid var(--blue);
@@ -247,4 +253,72 @@ input[type="text"]:focus {
   .h1-screen {
     font-size: 30px;
   }
+}
+
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 14px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.chip-short {
+  display: inline-block;
+  margin-left: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7a4d00;
+  background: #fdf1dc;
+  border-radius: 999px;
+  padding: 2px 8px;
+  vertical-align: middle;
+}
+.notice {
+  background: #fdf1dc;
+  border-left: 4px solid #b07000;
+  border-radius: var(--radius-control);
+  padding: 12px 16px;
+  color: #4a3300;
+}
+.inline-error {
+  color: #9b1c1c;
+  font-size: 14px;
+}
+.skeleton {
+  border-radius: var(--radius-card);
+  background: linear-gradient(90deg, #e6eaee 0%, #eef1f4 50%, #e6eaee 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+.error-card {
+  border-left: 4px solid #b4410b;
 }

@@ -1,19 +1,25 @@
+import { AnomalyChart, DataTable, EvidenceChart } from "../components/Charts";
+import { PhMap } from "../components/PhMap";
+import { describeSeries, yearOf } from "../format";
+import { cellSizeKm } from "../grid";
 import type { CaseResponse } from "../types";
-import { AnomalyChart, EvidenceChart } from "../components/Charts";
-import { yearOf } from "../format";
 import "./Screens.css";
 
 interface EvidenceProps {
   data: CaseResponse;
   question: string;
+  placeName: string;
+  alsoCovers: string;
   onCrossExamine: () => void;
 }
 
-export function Evidence({ data, question, onCrossExamine }: EvidenceProps) {
+export function Evidence({ data, question, placeName, alsoCovers, onCrossExamine }: EvidenceProps) {
   const { meta, series, trend } = data;
   const startYear = yearOf(meta.start);
   const endYear = yearOf(meta.end);
   const years = Number(endYear) - Number(startYear) + 1;
+  const zeroBased = meta.variable !== "T2M";
+  const size = meta.cell ? cellSizeKm(meta.cell.lat) : null;
 
   return (
     <div className="container stack-lg">
@@ -22,25 +28,58 @@ export function Evidence({ data, question, onCrossExamine }: EvidenceProps) {
         <h1 className="h1-screen">{question}</h1>
       </section>
 
-      <div className="card variable-strip">
-        <div>
-          <span className="strip-label">Definition</span>
-          <p>{meta.definition}</p>
+      <div className="scene">
+        <div className="card scene-facts">
+          <div>
+            <span className="strip-label">Where</span>
+            <p>
+              {placeName}
+              {size ? (
+                <span className="muted">
+                  {" "}
+                  · one NASA data square, about {size.ns} × {size.ew} km, centred on{" "}
+                  <span className="num">
+                    {meta.cell!.lat.toFixed(2)}°N, {meta.cell!.lon.toFixed(2)}°E
+                  </span>
+                </span>
+              ) : (
+                <span className="muted"> · satellite measurements over this point</span>
+              )}
+            </p>
+            {alsoCovers && <p className="muted small">The same square also covers {alsoCovers}.</p>}
+          </div>
+          <div>
+            <span className="strip-label">What</span>
+            <p>{meta.definition}</p>
+          </div>
+          <div>
+            <span className="strip-label">Source</span>
+            <p>{meta.source}</p>
+          </div>
+          <div>
+            <span className="strip-label">Record</span>
+            <p className="num">
+              {startYear}–{endYear} · {years} years · {meta.n_months} months
+            </p>
+          </div>
         </div>
-        <div>
-          <span className="strip-label">Source</span>
-          <p>{meta.source}</p>
-        </div>
-        <div>
-          <span className="strip-label">Record</span>
-          <p className="num">
-            {meta.n_months} months · {years} years
-          </p>
-        </div>
+        {meta.cell && (
+          <PhMap
+            overview={null}
+            code="T2M"
+            selected={{ lat: meta.cell.lat, lon: meta.cell.lon }}
+            mini
+            label={`Map showing the data square for ${placeName}`}
+          />
+        )}
       </div>
 
       {meta.warnings.length > 0 && (
-        <p className="definition-box">{meta.warnings.join(" ")}</p>
+        <div className="notice" role="note">
+          {meta.warnings.map((w) => (
+            <p key={w}>{w}</p>
+          ))}
+        </div>
       )}
 
       <section className="section stack-md">
@@ -48,44 +87,42 @@ export function Evidence({ data, question, onCrossExamine }: EvidenceProps) {
           <span className="exhibit">Exhibit A</span> Collect the evidence
         </h2>
         <p className="lead">
-          The raw monthly {meta.label.toLowerCase()} for this place, straight
-          from NASA POWER.
+          Every month of {meta.label.toLowerCase()} in this square, from {meta.source.split(" · ")[0]}.
+          The regular waves are the seasons.
         </p>
-        <EvidenceChart series={series} units={meta.units} />
-        <div className="chart-axis-note">
-          <span>{startYear}</span>
-          <span>{endYear}</span>
-        </div>
+        <EvidenceChart series={series} units={meta.units} zeroBased={zeroBased} />
+        <p className="chart-summary">{describeSeries(series, meta.units)}</p>
       </section>
 
       <section className="section stack-md">
         <h2>
-          <span className="exhibit">Exhibit B</span> Rule out the alibi
+          <span className="exhibit">Exhibit B</span> Remove the seasons
         </h2>
         <p className="lead">
-          Subtract each month's usual value to remove the seasons. What's left
-          is the anomaly — and the orange line is the trend through it.
+          Subtract each month’s usual value. What’s left is how unusual each month was,
+          and the orange line is the steady trend through it.
         </p>
         <AnomalyChart series={series} trend={trend} units={meta.units} />
         <div className="legend">
           <span className="legend-item">
-            <span className="legend-swatch blue" /> Monthly anomaly
+            <span className="legend-swatch blue" /> Difference from usual
           </span>
           <span className="legend-item">
-            <span className="legend-swatch dashed" /> Zero (no anomaly)
+            <span className="legend-swatch dashed" /> Usual (zero)
           </span>
           <span className="legend-item">
-            <span className="legend-swatch orange" /> Trend (Sen's slope)
+            <span className="legend-swatch orange" /> Trend (Sen’s slope)
           </span>
         </div>
+        <DataTable series={series} units={meta.units} />
       </section>
 
       <section className="section closing-row card">
         <p className="lead" style={{ margin: 0 }}>
-          There is a line. Is it a real trend, or could noise draw it?
+          There’s a line. Is it a real change, or could natural ups and downs draw it?
         </p>
         <button className="btn btn-primary" onClick={onCrossExamine}>
-          Cross-examine the trend
+          See the verdict
         </button>
       </section>
     </div>

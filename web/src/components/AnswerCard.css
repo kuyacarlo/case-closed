@@ -1,0 +1,77 @@
+.answer-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.answer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.answer-place {
+  font-weight: 600;
+  margin-top: 4px;
+}
+.answer-context {
+  color: var(--muted);
+  font-size: 14px;
+}
+.answer-headline {
+  font-size: 28px;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.answer-body {
+  color: var(--ink);
+  font-size: 16px;
+}
+.answer-cell {
+  font-size: 13px;
+  color: var(--muted);
+}
+.answer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.state-chip {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.state-confirmed {
+  color: #8a2f06;
+  background: #fdf0e9;
+}
+.state-step {
+  color: #7a4d00;
+  background: #fdf1dc;
+}
+.state-not_yet {
+  color: var(--muted);
+  background: var(--page);
+}
+.state-too_short {
+  color: #7a4d00;
+  background: #fdf1dc;
+}
+
+.sparkline svg {
+  width: 100%;
+  height: 72px;
+  display: block;
+}
+.sparkline-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+}
