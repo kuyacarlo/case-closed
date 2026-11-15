@@ -92,9 +92,66 @@ def fetch(key: str, lat: float, lon: float, plat: float, plon: float, tok: str) 
     return "failed"
 
 
+LAND_ONLY = ("GLDAS_EVAP", "GLDAS_ROOTMOIST", "GLDAS_RUNOFF")
+
+
+def all_empty(path: Path) -> bool:
+    body = path.read_text().partition("\n\n")[2].splitlines()[1:]
+    for line in body:
+        v = line.partition(",")[2].strip()
+        try:
+            x = float(v)
+        except ValueError:
+            continue
+        if -9000 < x < 1e29:
+            return False
+    return True
+
+
+def retry_empty(tok: str, cells: list[dict]) -> None:
+    """GLDAS is land-only at 0.25 deg, so a land point on a small island or a
+    narrow coast can still land on a GLDAS sea pixel. For squares that came
+    back empty, try town points inside the square (nearest the centre first)
+    and keep the first with data."""
+    sys.path.insert(0, str(ROOT / "api"))
+    from case_closed.grid import snap
+
+    places = json.loads((ROOT / "web" / "public" / "data" / "ph_places.json").read_text())["places"]
+    towns: dict[tuple, list] = {}
+    for t in places:
+        if t["k"] == "town":
+            c = snap(t["lat"], t["lon"])
+            towns.setdefault((c.lat, c.lon), []).append((t["lat"], t["lon"]))
+    fixed = still = 0
+    for key in LAND_ONLY:
+        for c in cells:
+            path = cache_path(key, c["lat"], c["lon"])
+            if not path.exists() or not all_empty(path):
+                continue
+            cands = sorted(towns.get((c["lat"], c["lon"]), []),
+                           key=lambda t: (t[0] - c["lat"]) ** 2 + (t[1] - c["lon"]) ** 2)[:4]
+            ok = False
+            for la, lo in cands:
+                tmp = path.with_suffix(".try")
+                path.rename(tmp)
+                if fetch(key, c["lat"], c["lon"], la, lo, tok) == "fetched" and not all_empty(path):
+                    tmp.unlink()
+                    ok = True
+                    break
+                if path.exists():
+                    path.unlink()
+                tmp.rename(path)
+            fixed += ok
+            still += not ok
+    print(f"retry-empty: filled {fixed}, still empty {still} (no GLDAS land pixel in the square)")
+
+
 def main() -> None:
     tok = token()
     cells = json.loads((ROOT / "tools" / "ph_cells.json").read_text())["cells"]
+    if sys.argv[1:] == ["--retry-empty"]:
+        retry_empty(tok, cells)
+        return
     keys = sys.argv[1:] or list(DATASETS)
     jobs = [(k, c["lat"], c["lon"], c.get("plat", c["lat"]), c.get("plon", c["lon"])) for k in keys for c in cells]
     t0 = time.time()
