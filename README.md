@@ -24,8 +24,8 @@ Case Closed shows both numbers side by side:
 - **The honest test** (Hamed-Rao modified Mann-Kendall) — corrects for
   autocorrelation.
 
-When a trend isn't significant yet, it estimates how many more years of data it
-would take to call it.
+When a trend isn't significant yet, it estimates how long a record it would
+take to call it.
 
 **Metro Manila air temperature, 1981–2024:** Rising **0.14 °C per decade,
 significant (p = 0.002)**. The naive test reports p ≈ 1e-10 — wildly
@@ -42,8 +42,8 @@ but the honest number is the one you can defend.
 | **Your choice** | Any Philippine city, temperature or rainfall | NASA POWER | live |
 
 The NO₂ case is honest in a different way: seven years of satellite data (2018–)
-is too short to confirm a trend, so the verdict is "not yet, ~70 more years
-needed" — and the tool says so instead of pretending.
+is too short to confirm a trend, so the verdict is "not yet, about 70 years of
+record needed" — and the tool says so instead of pretending.
 
 ## How a verdict is built
 

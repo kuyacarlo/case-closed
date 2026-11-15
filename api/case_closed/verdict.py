@@ -42,6 +42,6 @@ def build_verdict(trend: TrendResult, variable: Variable, start_year: int) -> di
     if trend.years_needed is None:
         tail = "more data needed"
     else:
-        tail = f"about {trend.years_needed} more years needed"
+        tail = f"about {trend.years_needed} years of record needed"
     text = f"No significant trend yet, {tail}"
     return {"state": "not_yet", "text": text}

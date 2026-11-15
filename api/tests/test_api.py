@@ -55,7 +55,7 @@ def test_verdict_not_yet_text():
     )
     v = build_verdict(trend, get_variable("T2M"), 1981)
     assert v["state"] == "not_yet"
-    assert "60 more years" in v["text"]
+    assert "60 years of record" in v["text"]
 
 
 def test_verdict_falling():
