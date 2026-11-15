@@ -161,7 +161,7 @@ export function Evidence({
 
       <section className="section card your-call stack-md" id="your-call">
         <h2>
-          <span className="exhibit">Step 4</span> Your call: does it look like a trend?
+          <span className="exhibit">Your call</span> Does it look like a trend?
         </h2>
         <p className="lead">
           Look at the two exhibits. Before any statistics, what does your eye say? Then the
@@ -185,7 +185,7 @@ export function Evidence({
             {guess ? "Locked in. Now test it." : "Make your call, or skip straight to the test."}
           </p>
           <button className="btn btn-primary" onClick={onCrossExamine}>
-            5 · Test for significance
+            Test for significance
           </button>
         </div>
       </section>

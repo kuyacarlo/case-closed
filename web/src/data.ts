@@ -10,6 +10,7 @@ export interface RawPlace {
   a?: string; // area id, for region-average cases
   p?: string; // province (towns)
   r?: string; // region
+  g?: "Luzon" | "Visayas" | "Mindanao"; // island group (towns)
   lat: number;
   lon: number;
 }

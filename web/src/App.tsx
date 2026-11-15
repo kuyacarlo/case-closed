@@ -436,7 +436,7 @@ export default function App() {
       name: "Is Metro Manila getting hotter?",
       steps: [
         {
-          title: "1. Choose what to investigate",
+          title: "Set up: choose a variable",
           body: "A data detective starts with a question. We pick Heat, then Air temperature. Each variable has a plain definition and a reason it matters.",
           target: ".theme-picker",
           run: () => {
@@ -446,13 +446,13 @@ export default function App() {
           },
         },
         {
-          title: "2. Choose a place",
+          title: "Set up: choose a region",
           body: "We search for Manila. Every place snaps to one NASA data square about 55 km wide, outlined on the map. The data is an average over that whole square.",
           target: ".ph-map",
           run: () => pickPlace(MANILA),
         },
         {
-          title: "3. Choose the time period",
+          title: "Set up: choose the time period",
           body: "By default we use the full record, 1981–2025. You can narrow it, but under 20 years is too short for a significance verdict.",
           target: ".period-picker",
         },
@@ -472,7 +472,7 @@ export default function App() {
           target: ".changing-here",
         },
         {
-          title: "4. Create the time series",
+          title: "Time series: create it",
           body: "Exhibit A: every month since 1981 from NASA POWER (MERRA-2). The waves are the seasons; the dark line is a 12-month average that shows the slow drift underneath.",
           target: "#exhibit-a .chart-panel",
           run: () => openCase("T2M", MANILA),
@@ -483,13 +483,13 @@ export default function App() {
           target: "#exhibit-b .chart-panel",
         },
         {
-          title: "Your call: does it look like a trend?",
+          title: "Time series: does it look like a trend?",
           body: "Before any statistics, a detective makes a call by eye. Here we say Rising. Next, the test checks whether it could just be chance.",
           target: "#your-call",
           run: () => setGuess("rising"),
         },
         {
-          title: "5. Test for significance",
+          title: "Significance: test it",
           body: "Our call was right: rising about 0.14 °C per decade, and significant. A trend this strong would turn up by chance less than 5 times in 100, and the 95% range doesn’t include zero.",
           target: ".case-summary",
           run: () => goTo(3),
@@ -584,14 +584,30 @@ export default function App() {
     return a && b && ia && ib ? [{ info: ia, cell: a }, { info: ib, cell: b }] : null;
   }, [caseLayers, cell, infoOf, area, place, caseCode, witnessCode]);
 
-  const enabled: Step[] = query ? [1, 2, 3] : [1];
+  // Header steps are always clickable. With an open case, jump within it;
+  // with a place picked but no case yet, build the case at that step;
+  // otherwise go to Set up and point at the region search.
+  const [needPlace, setNeedPlace] = useState(false);
+  function goToStep(s: Step) {
+    setNeedPlace(false);
+    if (s === 1) return goHome();
+    if (query && (data || status === "loading")) return goTo(s);
+    if (place) return openCase(code, place, s);
+    goHome();
+    setNeedPlace(true);
+    window.setTimeout(() => {
+      const el = document.getElementById("region-search");
+      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      el?.focus({ preventScroll: true });
+    }, 50);
+  }
   const qInfo = query ? infoOf(query.variable) : undefined;
   const question =
     query && place ? questionFor(query.variable, qInfo?.label ?? query.variable, query.variable === "NO2" ? "Manila" : place.name) : "";
 
   return (
     <>
-      <Header current={view} onHome={goHome} onStep={(s) => goTo(s)} onMethods={() => goTo("methods")} enabled={enabled} />
+      <Header current={view} onHome={goHome} onStep={goToStep} onMethods={() => goTo("methods")} />
       <p className="sr-only" aria-live="polite">
         {announce}
       </p>
@@ -620,8 +636,15 @@ export default function App() {
             periodMin={firstYearOf(code)}
             periodMax={LAST_YEAR}
             onPeriod={(start, end) => setPeriod({ start, end })}
-            onPlace={pickPlace}
-            onMapPick={pickPoint}
+            needPlace={needPlace && !place}
+            onPlace={(p) => {
+              setNeedPlace(false);
+              pickPlace(p);
+            }}
+            onMapPick={(la, lo) => {
+              setNeedPlace(false);
+              pickPoint(la, lo);
+            }}
             onEvidence={() => place && openCase(code, place)}
             onFeatured={() => openCase("OMI_NO2", MANILA)}
             onDemo={setDemo}

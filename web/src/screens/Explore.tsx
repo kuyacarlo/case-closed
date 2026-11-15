@@ -4,7 +4,7 @@ import { ChangingHere } from "../components/ChangingHere";
 import { MapLegend } from "../components/MapLegend";
 import { PhMap } from "../components/PhMap";
 import { PeriodPicker } from "../components/PeriodPicker";
-import { PlaceSearch } from "../components/PlaceSearch";
+import { PlacePicker } from "../components/PlacePicker";
 import { ThemePicker } from "../components/ThemePicker";
 import { scaleMax } from "../components/colour";
 import type { Layer, LayerCell, RawPlace, VarSummary } from "../data";
@@ -36,6 +36,8 @@ interface ExploreProps {
   onFeatured: (id: "manila-no2") => void;
   onDemo: (id: DemoId) => void;
   highlight: [number, number][] | null;
+  /** Set when a header step was clicked before any place was picked. */
+  needPlace?: boolean;
   areaSquares?: number;
   changingRows?: import("../data").ChangingRow[];
   period: { start: number; end: number };
@@ -87,13 +89,19 @@ export function Explore(props: ExploreProps) {
           {info && <p className="definition-box small">{info.definition}</p>}
 
           <div className="where-step">
-            <p className="field">2 · Region: where?</p>
-            <PlaceSearch onPick={props.onPlace} />
+            <p className="field">Region: where?</p>
+            {props.needPlace && (
+              <p className="notice small" role="status">
+                Pick a place first: choose one below or tap the map. Then the time series and
+                the significance test are one click away.
+              </p>
+            )}
+            <PlacePicker onPick={props.onPlace} inputId="region-search" />
           </div>
 
           <PeriodPicker
             idPrefix="home-period"
-            label="3 · Time period"
+            label="Time period"
             min={props.periodMin}
             max={props.periodMax}
             start={props.period.start}

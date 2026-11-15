@@ -8,7 +8,7 @@ interface PeriodPickerProps {
   start: number;
   end: number;
   onChange: (start: number, end: number) => void;
-  /** Visible label; "3 · Time period" on the home builder. */
+  /** Visible label, e.g. "Time period". */
   label?: string;
   idPrefix: string;
 }
