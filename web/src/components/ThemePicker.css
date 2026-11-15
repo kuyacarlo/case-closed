@@ -18,6 +18,7 @@
   padding: 0 14px;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
@@ -62,8 +63,22 @@
   border-color: var(--blue);
   box-shadow: inset 3px 0 0 var(--blue);
 }
+.theme-icon {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .var-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
+}
+.var-label .theme-icon {
+  color: var(--blue);
 }
 .var-why {
   font-size: 13px;
