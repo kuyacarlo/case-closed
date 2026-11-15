@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "api"))
 
 from case_closed.app import app  # noqa: E402
+from case_closed.fresh_html import FreshHtml  # noqa: E402
 
 # Serve the built SPA. API routes are declared on the imported app and take
 # priority; everything else falls back to index.html for client-side routing.
@@ -23,3 +24,6 @@ from case_closed.app import app  # noqa: E402
 # still imports under plain FastAPI (local dev, tests).
 if hasattr(app, "frontend"):
     app.frontend("/", directory="web/dist", fallback="index.html")
+
+
+app.add_middleware(FreshHtml)
