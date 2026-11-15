@@ -78,12 +78,21 @@ export function Methods({ index, variables, setAside, anchor, onBack }: MethodsP
   return (
     <div className="container methods stack-lg">
       <section className="stack-sm">
-        <p className="eyebrow">How it works</p>
         <h1 className="h1-screen">How Case Closed reaches a verdict</h1>
         <p className="lead">
           What the data is, how we test it, and what it can’t tell you.
         </p>
       </section>
+
+      <figure className="methods-photo">
+        <img
+          src="/photos/philippines-viirs-2022-04-18.jpg"
+          width={1200}
+          height={900}
+          alt="The Philippines seen from orbit, the area every variable in this tool covers."
+        />
+        <figcaption>The Philippines, 18 April 2022. NASA Worldview, Suomi NPP VIIRS.</figcaption>
+      </figure>
 
       <section className="stack-sm">
         <h2>The data</h2>
