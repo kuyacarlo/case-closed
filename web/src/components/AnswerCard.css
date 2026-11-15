@@ -48,20 +48,20 @@
   white-space: nowrap;
 }
 .state-confirmed {
-  color: #8a2f06;
-  background: #fdf0e9;
+  color: var(--hot-ink);
+  background: var(--hot-bg);
 }
 .state-step {
-  color: #7a4d00;
-  background: #fdf1dc;
+  color: var(--warn-ink);
+  background: var(--warn-bg);
 }
 .state-not_yet {
   color: var(--muted);
   background: var(--page);
 }
 .state-too_short {
-  color: #7a4d00;
-  background: #fdf1dc;
+  color: var(--warn-ink);
+  background: var(--warn-bg);
 }
 
 .sparkline svg {
@@ -85,7 +85,7 @@
 }
 .answers > div {
   display: grid;
-  grid-template-columns: 9.5em 1fr;
+  grid-template-columns: 7.5em minmax(0, 1fr);
   gap: 10px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
@@ -95,7 +95,7 @@
 }
 .answers dt {
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
@@ -105,6 +105,9 @@
   margin: 0;
   font-size: 15px;
   min-width: 0;
+}
+.answers dd.num {
+  font-size: 13.5px;
 }
 @media (max-width: 420px) {
   .answers > div {

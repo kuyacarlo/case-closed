@@ -6,7 +6,7 @@
 }
 .tour-ring {
   position: fixed;
-  border: 3px solid #f2b45a;
+  border: 3px solid var(--warn-on-dark);
   border-radius: 12px;
   box-shadow: 0 0 0 9999px rgba(15, 26, 36, 0.38);
   transition: all 0.3s ease;
@@ -31,7 +31,7 @@
   gap: 8px;
 }
 .tour-card:focus {
-  outline: 2px solid #f2b45a;
+  outline: 2px solid var(--warn-on-dark);
   outline-offset: 2px;
 }
 .tour-meta {
@@ -47,7 +47,7 @@
 }
 .tour-body {
   font-size: 15px;
-  color: #e6ebf0;
+  color: var(--on-dark-strong);
 }
 .tour-actions {
   display: flex;
@@ -58,7 +58,7 @@
 }
 .tour-actions .btn-outline {
   color: #fff;
-  border-color: #5b6b79;
+  border-color: var(--ink-line-strong);
 }
 .tour-actions .btn-outline:disabled {
   opacity: 0.4;
@@ -69,12 +69,12 @@
 }
 .tour-progress {
   height: 3px;
-  background: #2b3a47;
+  background: var(--ink-line);
   border-radius: 2px;
   overflow: hidden;
 }
 .tour-progress span {
   display: block;
   height: 100%;
-  background: #f2b45a;
+  background: var(--warn-on-dark);
 }

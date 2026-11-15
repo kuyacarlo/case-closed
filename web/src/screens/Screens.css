@@ -140,6 +140,27 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+@media (max-width: 640px) {
+  .actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
+/* Featured cases: 4 across, 2 x 2 on tablets, 1 column on phones */
+.featured-cases {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+}
+.featured-cases > .card {
+  display: flex;
+  flex-direction: column;
+}
+.featured-cases .case-detail {
+  flex: 1;
+}
+.featured-cases .btn {
+  align-self: flex-start;
+}
 
 /* ---------- Explore (home) ---------- */
 .explore-grid {
@@ -295,13 +316,17 @@
 }
 .verdict-detail {
   font-size: 18px;
-  color: #e6ebf0;
+  color: var(--on-dark-strong);
   max-width: 62ch;
+}
+.verdict-confirmed .verdict-stamp {
+  border-color: var(--hot-on-dark);
+  color: var(--hot-on-dark);
 }
 .verdict-too_short .verdict-stamp,
 .verdict-step .verdict-stamp {
-  border-color: #f2b45a;
-  color: #f8d9a8;
+  border-color: var(--warn-on-dark);
+  color: var(--warn-on-dark-text);
 }
 .slider-anchor {
   border-bottom: 1px solid var(--border);
@@ -317,7 +342,7 @@
   top: 12px;
   bottom: 12px;
   right: 0;
-  background: repeating-linear-gradient(135deg, #fdf1dc 0 6px, #f7dfb5 6px 12px);
+  background: repeating-linear-gradient(135deg, var(--warn-bg) 0 6px, var(--warn-stripe) 6px 12px);
   border-radius: 4px;
   pointer-events: none;
 }
@@ -355,7 +380,7 @@
   width: 18px;
   height: 10px;
   border-radius: 2px;
-  background: repeating-linear-gradient(135deg, #fdf1dc 0 4px, #f7dfb5 4px 8px);
+  background: repeating-linear-gradient(135deg, var(--warn-bg) 0 4px, var(--warn-stripe) 4px 8px);
   display: inline-block;
 }
 .how-sure summary {
@@ -412,7 +437,7 @@
 }
 .methods-table th {
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
@@ -465,7 +490,7 @@
   display: grid;
   gap: 0;
   width: 100%;
-  border-top: 1px solid #2b3a47;
+  border-top: 1px solid var(--ink-line);
   margin-top: 6px;
 }
 .summary-rows > div {
@@ -473,7 +498,7 @@
   grid-template-columns: 11em minmax(0, 1fr);
   gap: 16px;
   padding: 12px 0;
-  border-bottom: 1px solid #2b3a47;
+  border-bottom: 1px solid var(--ink-line);
 }
 .summary-rows dt {
   font-family: var(--font-mono);
@@ -563,7 +588,7 @@
   color: var(--muted);
 }
 .ch-sig.yes {
-  color: #8a2f06;
+  color: var(--hot-ink);
   font-weight: 600;
 }
 .legend-head {
@@ -595,7 +620,7 @@
   padding-top: 10px;
 }
 .legend-opposite {
-  background: #eef2ff;
+  background: var(--blue-bg);
   border-radius: var(--radius-control);
   padding: 8px 10px;
 }

@@ -60,7 +60,7 @@ export function Explore(props: ExploreProps) {
           you if there’s a trend, how big it is, and whether it’s significant.
         </p>
         <div className="hero-actions">
-          <button className="btn btn-outline demo-btn" onClick={() => props.onDemo("manila")}>
+          <button className="btn btn-primary demo-btn" onClick={() => props.onDemo("manila")}>
             ▶ Watch a 1-minute demo
           </button>
         </div>
@@ -142,7 +142,7 @@ export function Explore(props: ExploreProps) {
 
       <section className="section stack-md">
         <h2>Featured cases</h2>
-        <div className="card-row">
+        <div className="card-row featured-cases">
           <article className="card stack-sm">
             <p className="eyebrow">Demo · A significant trend</p>
             <h3 className="case-title">Is Metro Manila getting hotter?</h3>
@@ -150,7 +150,7 @@ export function Explore(props: ExploreProps) {
               Follow a full investigation: the raw data, removing the seasons, the trend,
               and the honest significance test.
             </p>
-            <button className="btn btn-primary" onClick={() => props.onDemo("manila")}>
+            <button className="btn btn-outline" onClick={() => props.onDemo("manila")}>
               ▶ Watch the demo
             </button>
           </article>
