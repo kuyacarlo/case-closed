@@ -11,6 +11,10 @@ Built for high-school and college students, Philippines first.
 
 **Live:** <https://caseclosed.kuyacarlo.dev>
 
+![Case Closed home screen: a satellite photo of the Philippines, the variable picker and the trend map](docs/home.png)
+
+![Verdict screen for Metro Manila air temperature, stamped Case Closed](docs/verdict.png)
+
 ## The idea: be honest about confidence
 
 Most trend tools stop at "the line goes up." The hard part is knowing whether a
