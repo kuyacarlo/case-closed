@@ -1,7 +1,7 @@
 import { AnomalyChart, DataTable, EvidenceChart } from "../components/Charts";
 import { PhMap } from "../components/PhMap";
 import { WitnessPanel, type Witness } from "../components/WitnessPanel";
-import { describeSeries, yearOf } from "../format";
+import { describeSeries, plainSource, yearOf } from "../format";
 import { cellSizeKm } from "../grid";
 import { useState } from "react";
 import type { CaseResponse } from "../types";
@@ -85,7 +85,7 @@ export function Evidence({
           </div>
           <div>
             <span className="strip-label">Source</span>
-            <p>{meta.source}</p>
+            <p>{plainSource(meta.source)}</p>
           </div>
           <div>
             <span className="strip-label">Record</span>

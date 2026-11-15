@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { OverviewIndex } from "../data";
 import type { VariableInfo } from "../types";
+import { plainSource } from "../format";
 import "./Screens.css";
 
 interface MethodsProps {
@@ -112,7 +113,7 @@ export function Methods({ index, variables, setAside, anchor, onBack }: MethodsP
                       <code>{v.code}</code>, {v.units}
                     </td>
                     <td>{v.definition}</td>
-                    <td>{v.source}</td>
+                    <td>{plainSource(v.source)}</td>
                     <td className="num">
                       {s ? `${s.window[0]}–${s.window[1]}` : v.static_place ? "2018–2024" : `${v.first_year}–2025`}
                       {v.first_year_note && <span className="muted small">, {v.first_year_note}</span>}

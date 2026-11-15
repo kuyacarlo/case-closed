@@ -28,3 +28,8 @@ export function describeSeries(series: SeriesPoint[], units: string): string {
   const hi = Math.max(...vals);
   return `${series.length} monthly values from ${series[0].t} to ${series[series.length - 1].t}, ranging from ${lo.toFixed(1)} to ${hi.toFixed(1)} ${units}.`;
 }
+
+/** Source names from the API, with commas between the parts. */
+export function plainSource(source: string): string {
+  return source.replaceAll(" · ", ", ");
+}
