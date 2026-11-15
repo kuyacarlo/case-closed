@@ -36,9 +36,9 @@
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Fonts */
-  --font-head: "Space Grotesk", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-head: "Zilla Slab", Rockwell, Georgia, serif;
+  --font-body: "Public Sans", system-ui, sans-serif;
+  --font-mono: "Sometype Mono", ui-monospace, monospace;
 
   /* Shape */
   --radius-card: 10px;
