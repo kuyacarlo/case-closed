@@ -37,9 +37,10 @@ def test_verdict_confirmed_text():
     )
     v = build_verdict(trend, get_variable("T2M"), 1981, n_months=528)
     assert v["state"] == "confirmed"
-    assert "Getting warmer" in v["text"]
-    assert "0.15" in v["text"]
-    assert "1981" in v["text"]
+    assert v["significant"] is True and v["direction"] == "rising"
+    assert "Getting warmer" in v["headline"]
+    assert "0.15" in v["headline"]
+    assert "1981" in v["detail"]
 
 
 def test_verdict_not_yet_text():
@@ -55,7 +56,10 @@ def test_verdict_not_yet_text():
     )
     v = build_verdict(trend, get_variable("T2M"), 1981, n_months=528)
     assert v["state"] == "not_yet"
-    assert "No clear change" in v["text"]
+    # A non-significant trend still reports its direction and size.
+    assert v["direction"] == "rising" and v["significant"] is False
+    assert "slight rise" in v["headline"] and "0.02" in v["headline"]
+    assert "not significant" in v["headline"]
     assert "60 years" in v["detail"]
 
 
@@ -143,6 +147,7 @@ def _trend(**kw):
 def test_verdict_too_short_even_when_significant():
     v = build_verdict(_trend(), get_variable("T2M"), 2019, n_months=72)
     assert v["state"] == "too_short"
+    assert v["significant"] is False and v["direction"] == "rising"
     assert "6 years" in v["detail"]
 
 
@@ -151,7 +156,7 @@ def test_verdict_step_when_change_is_mostly_a_jump():
           "slope_after_per_decade": 0.07, "step_dominated": True}
     v = build_verdict(_trend(changepoint=cp), get_variable("PRECTOTCORR"), 1981, n_months=528)
     assert v["state"] == "step"
-    assert "1999" in v["text"] and "Getting wetter" in v["text"]
+    assert "1999" in v["headline"] and "Getting wetter" in v["headline"]
 
 
 def test_verdict_hides_huge_years_needed():
@@ -199,3 +204,30 @@ def test_rainfall_before_2000_refused_with_reason(client):
 def test_rainfall_defaults_to_its_first_year(client):
     r = client.get("/api/case", params={"lat": 16.4, "lon": 120.6, "variable": "PRECTOTCORR"})
     assert r.status_code == 200
+
+
+def test_verdict_flat_when_change_rounds_to_zero():
+    t = _trend(sen_slope_per_decade=0.0004, p_honest=0.9, years_needed=None)
+    v = build_verdict(t, get_variable("T2M"), 1981, n_months=528)
+    assert v["direction"] == "flat"
+    assert "flat" in v["headline"].lower()
+
+
+def test_every_variable_is_documented():
+    from case_closed.variables import VARIABLES
+    for code, var in VARIABLES.items():
+        assert var.label and var.definition and var.source, code
+        assert var.theme in {"heat", "water", "land", "sky", "air"}, code
+        assert var.why_it_matters, code
+        assert 1981 <= var.first_year <= 2025, code
+
+
+def test_soil_moisture_scaled_to_percent(monkeypatch):
+    def fake(variable, lat, lon, start, end, **kw):
+        pts = [MonthlyPoint(t=f"{1981 + i // 12:04d}-{i % 12 + 1:02d}", value=0.5) for i in range(540)]
+        return MonthlySeries(variable=variable, lat=lat, lon=lon, points=pts)
+    monkeypatch.setattr(app_module, "get_series", fake)
+    r = TestClient(app_module.app).get("/api/case", params={"lat": 10, "lon": 123, "variable": "GWETROOT"})
+    assert r.status_code == 200
+    assert r.json()["series"][0]["value"] == 50.0
+    assert r.json()["meta"]["units"] == "%"

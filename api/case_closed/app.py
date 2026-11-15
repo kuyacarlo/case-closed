@@ -11,10 +11,10 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from .grid import snap
-from .power import CacheMiss, get_series
+from .power import CacheMiss, MonthlyPoint, MonthlySeries, get_series
 from .static_cases import OutsideStaticArea, load_static_series
 from .stats import analyze, monthly_anomalies
-from .variables import DEFAULT_VARIABLE, get_variable, variable_list
+from .variables import DEFAULT_VARIABLE, THEMES, get_variable, variable_list
 from .verdict import build_verdict
 
 # NASA POWER monthly data starts in 1981; 2025 is the last complete year
@@ -39,7 +39,12 @@ def health() -> dict:
 
 @app.get("/api/variables")
 def variables() -> dict:
-    return {"variables": variable_list(), "first_year": FIRST_YEAR, "last_year": LAST_YEAR}
+    return {
+        "variables": variable_list(),
+        "themes": THEMES,
+        "first_year": FIRST_YEAR,
+        "last_year": LAST_YEAR,
+    }
 
 
 @app.get("/api/case")
@@ -84,6 +89,14 @@ def case(
             )
         else:
             series = get_series(var.code, cell.lat, cell.lon, start, end)
+            if var.scale != 1.0:
+                series = MonthlySeries(
+                    variable=series.variable,
+                    lat=series.lat,
+                    lon=series.lon,
+                    points=[MonthlyPoint(t=p.t, value=p.value * var.scale) for p in series.points],
+                    from_cache=series.from_cache,
+                )
     except OutsideStaticArea:
         raise HTTPException(
             status_code=404,

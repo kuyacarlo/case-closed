@@ -131,3 +131,11 @@ def test_steady_trend_is_not_step_dominated():
     months = np.linspace(0, 2, 44 * 12) + rng.normal(0, 0.2, 44 * 12)
     cp = annual_changepoint(months, 1981, 1)
     assert cp["step_dominated"] is False
+
+
+def test_constant_series_gives_finite_p():
+    import math
+    import numpy as np
+    from case_closed.stats import analyze
+    trend, _ = analyze(np.zeros(300), start_month=1, start_year=2000)
+    assert math.isfinite(trend.p_naive) and math.isfinite(trend.p_honest)

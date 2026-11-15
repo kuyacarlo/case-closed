@@ -60,6 +60,17 @@ DISPLAY = {
 }
 
 
+# Island group for each geoBoundaries 2020 region name (Mimaropa is
+# administratively part of Luzon).
+ISLAND_GROUP = {
+    "NCR": "Luzon", "CAR": "Luzon", "Ilocos Region": "Luzon", "Cagayan Valley": "Luzon",
+    "Central Luzon": "Luzon", "Calabarzon": "Luzon", "Mimaropa": "Luzon", "Bicol Region": "Luzon",
+    "Western Visayas": "Visayas", "Central Visayas": "Visayas", "Eastern Visayas": "Visayas",
+    "Zamboanga Peninsula": "Mindanao", "Northern Mindanao": "Mindanao", "Davao Region": "Mindanao",
+    "Soccsksargen": "Mindanao", "Caraga": "Mindanao", "ARMM": "Mindanao",
+}
+
+
 def clean_name(s: str) -> str:
     return unicodedata.normalize("NFC", s).strip()
 
@@ -101,8 +112,9 @@ def main() -> None:
         geom = shape(f["geometry"])
         pt = geom.representative_point()
         prov = containing(prov_tree, provinces, pt)
+        region = containing(region_tree, regions, pt)
         places.append({"n": clean_name(f["properties"]["shapeName"]), "k": "town", "p": display(prov),
-                       "r": display(containing(region_tree, regions, pt)),
+                       "r": display(region), "g": ISLAND_GROUP[region],
                        "lat": round(pt.y, 4), "lon": round(pt.x, 4)})
         town_cells.add(snap(pt.y, pt.x))
 

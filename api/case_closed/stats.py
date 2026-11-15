@@ -232,8 +232,12 @@ def analyze(
 
     anomalies = monthly_anomalies(values, start_month=start_month)
     sen = sen_slope_per_decade(anomalies)
+    # A (near-)constant series makes Mann-Kendall's variance zero and its
+    # p-value NaN; that means "no evidence of a trend", so report p = 1.
     p_n = naive_p(anomalies)
     p_h = honest_p(anomalies)
+    p_n = 1.0 if not math.isfinite(p_n) else p_n
+    p_h = 1.0 if not math.isfinite(p_h) else p_h
     ols, ci95, n_eff, lag1 = ols_slope_ci(anomalies)
     needed = years_needed(anomalies, sen)
 
